@@ -2,7 +2,7 @@
 1_Login.py · Power Bill Coach Login & Sign Up
 Handles user authentication with phone + Security PIN.
 Stores data locally in SQLite with hashed PINs.
-Supports full instantaneous Kannada & English translation.
+Guaranteed visible side-by-side tabs and smooth zero-flicker language switching.
 """
 
 import streamlit as st
@@ -15,17 +15,34 @@ ui_common.render_sidebar()
 
 lang = st.session_state.get("lang", "en")
 
-# Header & Tagline
-st.title(text.T("app_title", lang))
-st.markdown(f"### {text.T('tagline', lang)}")
-st.caption(text.T("no_passwords", lang))
 
-st.markdown("<br>", unsafe_allow_html=True)
+def _on_lang_switch():
+    chosen = st.session_state.get("login_lang_toggle")
+    st.session_state["lang"] = "kn" if chosen == "ಕನ್ನಡ" else "en"
 
-# Main Login / Sign Up container
-c1, c2, c3 = st.columns([1, 2, 1])
 
-with c2:
+# Centered Layout with generous space so tabs are never cut off
+_, main_col, _ = st.columns([1, 8, 1])
+
+with main_col:
+    # Top Header with Language Switcher side-by-side
+    header_left, header_right = st.columns([3, 1])
+    with header_left:
+        st.title(text.T("app_title", lang))
+        st.markdown(f"**{text.T('tagline', lang)}**")
+        st.caption(text.T("no_passwords", lang))
+    with header_right:
+        st.radio(
+            "Language / ಭಾಷೆ",
+            options=["English", "ಕನ್ನಡ"],
+            index=0 if lang == "en" else 1,
+            horizontal=True,
+            key="login_lang_toggle",
+            on_change=_on_lang_switch
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # Instant Demo Card for Hackathon Judges
     with st.container(border=True):
         st.markdown(f"#### {text.T('judge_card_title', lang)}")
@@ -38,6 +55,7 @@ with c2:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # Visible Full-Width Side-by-Side Tabs
     tab_login, tab_signup = st.tabs([text.T("tab_login", lang), text.T("tab_signup", lang)])
 
     # --- TAB 1: LOG IN ---
@@ -45,19 +63,8 @@ with c2:
         st.subheader(text.T("login_sub", lang))
         phone_in = st.text_input(text.T("phone_label", lang), max_chars=10, placeholder=text.T("phone_placeholder", lang), key="login_phone")
         pin_in = st.text_input(text.T("pin_label", lang), type="password", placeholder=text.T("pin_placeholder", lang), key="login_pin")
-        
-        # In-page Language Selector with immediate rerun
-        lang_sel = st.selectbox(
-            text.T("sidebar_lang_label", lang),
-            ["English", "ಕನ್ನಡ"],
-            index=0 if lang == "en" else 1,
-            key="login_lang_picker"
-        )
-        selected_lang = "en" if lang_sel == "English" else "kn"
-        if selected_lang != lang:
-            st.session_state["lang"] = selected_lang
-            st.rerun()
 
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button(text.T("btn_login", lang), type="primary", use_container_width=True, key="btn_login"):
             if not phone_in or len(phone_in) < 10:
                 st.error(text.T("err_phone", lang))
@@ -80,6 +87,7 @@ with c2:
         new_pin = st.text_input(text.T("pin_label", lang), type="password", placeholder=text.T("pin_placeholder", lang), key="signup_pin")
         confirm_pin = st.text_input(text.T("pin_confirm_label", lang), type="password", placeholder=text.T("pin_placeholder", lang), key="signup_confirm_pin")
 
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button(text.T("btn_signup", lang), type="primary", use_container_width=True, key="btn_signup"):
             if not new_name.strip():
                 st.error(text.T("err_name", lang))

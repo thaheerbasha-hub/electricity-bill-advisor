@@ -66,15 +66,35 @@ def apply_custom_css():
         box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2) !important;
     }
     
-    /* Tabs Visibility */
+    /* =========================================================
+       TABS: Prominent, wide, clearly visible side-by-side
+       ========================================================= */
+    div[data-baseweb="tab-list"] {
+        display: flex !important;
+        width: 100% !important;
+        gap: 12px !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+        margin-bottom: 20px !important;
+    }
     button[data-baseweb="tab"] {
-        color: #334155 !important;
-        font-weight: 600 !important;
-        font-size: 1rem !important;
+        flex: 1 1 0% !important;
+        text-align: center !important;
+        justify-content: center !important;
+        color: #475569 !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        padding: 12px 16px !important;
+        border-radius: 8px 8px 0 0 !important;
+        background-color: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-bottom: none !important;
     }
     button[data-baseweb="tab"][aria-selected="true"] {
         color: #059669 !important;
-        border-bottom-color: #059669 !important;
+        background-color: #ffffff !important;
+        border-top: 3px solid #059669 !important;
+        border-bottom: 2px solid #ffffff !important;
+        margin-bottom: -2px !important;
     }
     
     /* Bordered Containers (Cards) */
@@ -140,8 +160,13 @@ def apply_custom_css():
     """, unsafe_allow_html=True)
 
 
+def _on_sidebar_lang_change():
+    chosen = st.session_state.get("sidebar_lang_selector")
+    st.session_state["lang"] = "kn" if chosen == "ಕನ್ನಡ" else "en"
+
+
 def render_sidebar():
-    """Consistent sidebar across every page: user status, language, logout, helpline"""
+    """Consistent sidebar across pages"""
     current_lang = st.session_state.get("lang", "en")
 
     with st.sidebar:
@@ -149,23 +174,19 @@ def render_sidebar():
         st.markdown(f"<div style='color:#94a3b8; font-size:0.85em; margin-bottom:14px;'>{text.T('app_subtitle', current_lang)}</div>", unsafe_allow_html=True)
         st.divider()
 
-        # Language switcher right at top of sidebar
-        lang_choice = st.radio(
-            text.T("sidebar_lang_label", current_lang),
-            options=["English", "ಕನ್ನಡ"],
-            index=0 if current_lang == "en" else 1,
-            horizontal=True,
-            key="sidebar_lang_selector"
-        )
-        new_lang = "en" if lang_choice == "English" else "kn"
-        if new_lang != current_lang:
-            st.session_state["lang"] = new_lang
-            st.rerun()
-
-        st.divider()
-
         user = st.session_state.get("user")
         if user:
+            # Language switcher in sidebar ONLY for logged in users
+            st.radio(
+                text.T("sidebar_lang_label", current_lang),
+                options=["English", "ಕನ್ನಡ"],
+                index=0 if current_lang == "en" else 1,
+                horizontal=True,
+                key="sidebar_lang_selector",
+                on_change=_on_sidebar_lang_change
+            )
+            st.divider()
+
             # User profile card
             st.markdown(f"""
             <div style="background:#1e293b; border:1px solid #334155; padding:12px; border-radius:10px; margin-bottom:14px;">
@@ -180,7 +201,7 @@ def render_sidebar():
                 st.session_state["user"] = None
                 st.rerun()
         else:
-            # Not logged in
+            # Not logged in note
             st.markdown(f"""
             <div style="background:#1e293b; border:1px solid #334155; padding:12px; border-radius:10px; color:#cbd5e1; font-size:0.9em; margin-bottom:14px;">
                 {text.T('sidebar_please_login', current_lang)}

@@ -15,11 +15,11 @@ STRINGS = {
     },
     "tagline": {
         "en": "Your BESCOM bill, explained like a friend would. No watts, no appliance lists. Just simple questions.",
-        "kn": "ನಿಮ್ಮ ಬೆಸ್ಕಾಂ ಬಿಲ್ ಅನ್ನು ಸ್ನೇಹಿತನಂತೆ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ. ಯಾವುದೇ ವಾಟ್‌ಗಳಿಲ್ಲ, ಉಪಕರಣಗಳ ಪಟ್ಟಿಯಿಲ್ಲ. ಕೇವಲ ಸರಳ ಪ್ರಶ್ನೆಗಳು."
+        "kn": "ನಿಮ್ಮ ಬೆಸ್ಕಾಂ ಬಿಲ್ ಅನ್ನು ಸ್ನೇಹಿತನಂತೆ ಸುಲಭವಾಗಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ. ಯಾವುದೇ ಕಷ್ಟದ ಲೆಕ್ಕಾಚಾರಗಳಿಲ್ಲ."
     },
     "no_passwords": {
         "en": "We never ask for BESCOM passwords. Your data stays safe and local.",
-        "kn": "ನಾವು ಎಂದಿಗೂ ಬೆಸ್ಕಾಂ ಪಾಸ್‌ವರ್ಡ್‌ಗಳನ್ನು ಕೇಳುವುದಿಲ್ಲ. ನಿಮ್ಮ ಮಾಹಿತಿ ಸುರಕ್ಷಿತವಾಗಿರುತ್ತದೆ."
+        "kn": "ನಾವು ಬೆಸ್ಕಾಂ ಪಾಸ್‌ವರ್ಡ್‌ಗಳನ್ನು ಕೇಳುವುದಿಲ್ಲ. ನಿಮ್ಮ ಮಾಹಿತಿ ಸುರಕ್ಷಿತವಾಗಿರುತ್ತದೆ."
     },
 
     # --- Sidebar ---
@@ -51,11 +51,11 @@ STRINGS = {
     # --- Login Page ---
     "judge_card_title": {
         "en": "🚀 Quick Access for Judges & Reviewers",
-        "kn": "🚀 ತೀರ್ಪುಗಾರರು ಮತ್ತು ಪರಿಶೀಲಕರಿಗೆ ತ್ವರಿತ ಪ್ರವೇಶ"
+        "kn": "🚀 ತ್ವರಿತ ಡೆಮೊ ಪ್ರವೇಶ (ಪರಿಶೀಲಕರಿಗೆ)"
     },
     "judge_card_desc": {
         "en": "Skip typing and test the full app immediately with 6 pre-loaded sample bills:",
-        "kn": "ಟೈಪ್ ಮಾಡದೆ 6 ಮಾದರಿ ಬಿಲ್‌ಗಳೊಂದಿಗೆ ಅಪ್ಲಿಕೇಶನ್ ಅನ್ನು ತಕ್ಷಣವೇ ಪರೀಕ್ಷಿಸಿ:"
+        "kn": "ಟೈಪ್ ಮಾಡದೆ 6 ಮಾದರಿ ಬಿಲ್‌ಗಳೊಂದಿಗೆ ಅಪ್ಲಿಕೇಶನ್ ತಕ್ಷಣ ಪರೀಕ್ಷಿಸಿ:"
     },
     "judge_btn": {
         "en": "⚡ Launch Instant Demo Account",
@@ -67,7 +67,7 @@ STRINGS = {
     },
     "tab_signup": {
         "en": "📝 Create Account",
-        "kn": "📝 ಖಾತೆ ತೆರೆಯಿರಿ"
+        "kn": "📝 ಹೊಸ ಖಾತೆ ರಚಿಸಿ"
     },
     "login_sub": {
         "en": "Log in to your account",
@@ -83,7 +83,7 @@ STRINGS = {
     },
     "pin_label": {
         "en": "4-digit Security PIN",
-        "kn": "4-digit Security PIN (ಭದ್ರತಾ ಪಿನ್)"
+        "kn": "4-digit Security PIN"
     },
     "pin_placeholder": {
         "en": "Enter security PIN / code",
@@ -95,29 +95,29 @@ STRINGS = {
     },
     "err_phone": {
         "en": "Please enter a valid 10-digit mobile number.",
-        "kn": "ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ 10-ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ."
+        "kn": "ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ 10-ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ."
     },
     "err_pin": {
         "en": "Please enter your 4-digit Security PIN.",
-        "kn": "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಭದ್ರತಾ ಪಿನ್ ನಮೂದಿಸಿ."
+        "kn": "ದಯವಿಟ್ಟು ಭದ್ರತಾ ಪಿನ್ ನಮೂದಿಸಿ."
     },
     "err_invalid_login": {
         "en": "Incorrect mobile number or security PIN. Please try again or create an account.",
-        "kn": "ತಪ್ಪಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಅಥವಾ ಭದ್ರತಾ ಪಿನ್. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಹೊಸ ಖಾತೆ ತೆರೆಯಿರಿ."
+        "kn": "ತಪ್ಪಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಅಥವಾ ಭದ್ರತಾ ಪಿನ್. ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ."
     },
 
     # --- Sign Up Tab ---
     "signup_sub": {
         "en": "Create a new account",
-        "kn": "ಹೊಸ ಖಾತೆಯನ್ನು ರಚಿಸಿ"
+        "kn": "ಹೊಸ ಖಾತೆ ರಚಿಸಿ"
     },
     "signup_caption": {
         "en": "Your details are stored strictly in a local database. No BESCOM passwords needed.",
-        "kn": "ನಿಮ್ಮ ವಿವರಗಳು ಸ್ಥಳೀಯ ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ಸುರಕ್ಷಿತವಾಗಿರುತ್ತವೆ. ಬೆಸ್ಕಾಂ ಪಾಸ್‌ವರ್ಡ್ ಅಗತ್ಯವಿಲ್ಲ."
+        "kn": "ನಿಮ್ಮ ವಿವರಗಳು ಸ್ಥಳೀಯ ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ಸುರಕ್ಷಿತವಾಗಿರುತ್ತವೆ."
     },
     "name_label": {
         "en": "Full Name / Household Name",
-        "kn": "ಪೂರ್ಣ ಹೆಸರು / ಮನೆಯ ಹೆಸರು"
+        "kn": "ಪೂರ್ಣ ಹೆಸರು"
     },
     "name_placeholder": {
         "en": "e.g. Ramesh Kumar",
@@ -137,7 +137,7 @@ STRINGS = {
     },
     "err_pin_match": {
         "en": "The security PINs do not match. Please re-enter.",
-        "kn": "ಭದ್ರತಾ ಪಿನ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ."
+        "kn": "ಭದ್ರತಾ ಪಿನ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ."
     },
     "err_user_exists": {
         "en": "An account with this mobile number already exists. Please log in.",
@@ -151,11 +151,11 @@ STRINGS = {
     },
     "home_subtitle": {
         "en": "Here is your household's latest BESCOM electricity overview",
-        "kn": "ನಿಮ್ಮ ಮನೆಯ ಬೆಸ್ಕಾಂ ವಿದ್ಯುತ್ ಖಾತೆಯ ಇತ್ತೀಚಿನ ಅವಲೋಕನ ಇಲ್ಲಿದೆ"
+        "kn": "ನಿಮ್ಮ ಮನೆಯ ಬೆಸ್ಕಾಂ ವಿದ್ಯುತ್ ಖಾತೆಯ ವಿವರಗಳು"
     },
     "metric_latest_bill": {
         "en": "Latest Bill to Pay",
-        "kn": "ಪಾವತಿಸಬೇಕಾದ ಇತ್ತೀಚಿನ ಬಿಲ್"
+        "kn": "ಇತ್ತೀಚಿನ ಬಿಲ್"
     },
     "metric_units": {
         "en": "Units Consumed",
@@ -195,7 +195,7 @@ STRINGS = {
     },
     "units_buffer": {
         "en": "Buffer left before losing ₹0 scheme:",
-        "kn": "ಉಚಿತ ಸೌಲಭ್ಯ ಉಳಿಸಿಕೊಳ್ಳಲು ಬಾಕಿ ಇರುವ ಯೂನಿಟ್‌ಗಳು:"
+        "kn": "ಉಚಿತ ಸೌಲಭ್ಯ ಉಳಿಸಿಕೊಳ್ಳಲು ಬಾಕಿ ಯೂನಿಟ್‌ಗಳು:"
     },
     "units_over": {
         "en": "Over the line! Full bill payable:",
