@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+.Python
+env/
+venv/
+.venv/
+.streamlit/secrets.toml
