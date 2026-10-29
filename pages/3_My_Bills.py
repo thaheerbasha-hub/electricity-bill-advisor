@@ -2,7 +2,7 @@
 3_My_Bills.py · Manage Monthly Electricity Bills
 Assigned to: THAHEER
 Features:
-  - Smart Bill Scanner: Drag-and-drop file upload (PNG, JPG, PDF) or copy-paste directly from clipboard (Ctrl+V)
+  - Smart Bill Scanner: Drag-and-drop file upload (PNG, JPG, JPEG, WEBP, PDF)
   - Rapid AI OCR Engine: Automatically and accurately extracts exact Karnataka BESCOM bill parameters in seconds
   - Auto-fills Month, Units, Billing Days, Sanctioned Load, Fuel Surcharge, and Subsidy Status
   - 100% Manual entry & editing support retained across all 8 bill parameters
@@ -23,12 +23,6 @@ import bill_scanner
 # Ensure fresh reload of bill_scanner module
 importlib.reload(bill_scanner)
 
-try:
-    from streamlit_paste_button import paste_image_button
-    HAS_PASTE_BTN = True
-except ImportError:
-    HAS_PASTE_BTN = False
-
 ui_common.apply_custom_css()
 ui_common.render_sidebar()
 
@@ -47,44 +41,22 @@ bills = db.get_bills(user["id"])
 # --- Add Bill Section ---
 with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
 
-    # 1. SMART BILL SCANNER (DRAG-AND-DROP OR CLIPBOARD COPY-PASTE)
+    # 1. SMART BILL SCANNER (DRAG-AND-DROP FILE UPLOAD)
     st.markdown("### 📸 " + ("Scan & Auto-Fill from Bill Image / PDF" if lang == "en" else "ಬಿಲ್ ಫೋಟೋ / PDF ಸ್ಕ್ಯಾನ್ ಮಾಡಿ (AI ಸ್ವಯಂ-ತುಂಬುವಿಕೆ)"))
     st.caption(
-        "Upload a photo/PDF or paste a copied bill screenshot (Ctrl+V) — our AI scanner accurately extracts units, billing cycle, sanctioned load, and fuel charges automatically in seconds."
+        "Upload or drag-and-drop a photo or PDF of your BESCOM bill — our AI scanner accurately extracts units, billing cycle, sanctioned load, and fuel charges automatically in seconds."
         if lang == "en" else
-        "ಬಿಲ್ ಫೋಟೋ/PDF ಅಪ್ಲೋಡ್ ಮಾಡಿ ಅಥವಾ ಕಾಪಿ ಮಾಡಿದ ಚಿತ್ರವನ್ನು ಪೇಸ್ಟ್ ಮಾಡಿ — ನಮ್ಮ AI ಸ್ಕ್ಯಾನರ್ ನಿಮ್ಮ ಯೂನಿಟ್‌ಗಳು, ದಿನಗಳು ಮತ್ತು ಶುಲ್ಕಗಳನ್ನು ಕ್ಷಣಾರ್ಧದಲ್ಲಿ ಗುರುತಿಸುತ್ತದೆ."
+        "ನಿಮ್ಮ ಬೆಸ್ಕಾಂ ಬಿಲ್ ಫೋಟೋ ಅಥವಾ PDF ಅಪ್ಲೋಡ್ ಮಾಡಿ — ನಮ್ಮ AI ಸ್ಕ್ಯಾನರ್ ನಿಮ್ಮ ಯೂನಿಟ್‌ಗಳು, ದಿನಗಳು ಮತ್ತು ಶುಲ್ಕಗಳನ್ನು ಕ್ಷಣಾರ್ಧದಲ್ಲಿ ಗುರುತಿಸುತ್ತದೆ."
     )
 
-    scan_col1, scan_col2 = st.columns([1.2, 0.8])
+    uploaded_file = st.file_uploader(
+        "📂 " + ("Drag & Drop Bill Photo or PDF" if lang == "en" else "ಬಿಲ್ ಫೋಟೋ ಅಥವಾ PDF ಡ್ರ್ಯಾಗ್ & ಡ್ರಾಪ್ ಮಾಡಿ"),
+        type=["png", "jpg", "jpeg", "webp", "pdf"],
+        key="bill_file_uploader",
+        help="Drag and drop or browse clear photos of BESCOM bills, digital e-bills, or PDFs."
+    )
 
-    with scan_col1:
-        uploaded_file = st.file_uploader(
-            "📂 " + ("Drag & Drop Bill Photo or PDF" if lang == "en" else "ಬಿಲ್ ಫೋಟೋ ಅಥವಾ PDF ಡ್ರ್ಯಾಗ್ & ಡ್ರಾಪ್ ಮಾಡಿ"),
-            type=["png", "jpg", "jpeg", "webp", "pdf"],
-            key="bill_file_uploader",
-            help="Drag and drop or browse clear photos of BESCOM bills, digital e-bills, or PDFs."
-        )
-
-    with scan_col2:
-        st.markdown("**" + ("📋 Or Paste from Clipboard:" if lang == "en" else "📋 ಅಥವಾ ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ನಿಂದ ಪೇಸ್ಟ್ ಮಾಡಿ:") + "**")
-        paste_result = None
-        if HAS_PASTE_BTN:
-            paste_result = paste_image_button(
-                label="📋 " + ("Paste Copied Bill Image" if lang == "en" else "ಕಾಪಿ ಮಾಡಿದ ಬಿಲ್ ಚಿತ್ರ ಪೇಸ್ಟ್ ಮಾಡಿ"),
-                text_color="#ffffff",
-                background_color="#059669",
-                hover_background_color="#047857",
-                key="bill_clipboard_paste"
-            )
-            st.caption(
-                "💡 *Copy any screenshot (Win+Shift+S / Snipping Tool / Ctrl+C), then click the Paste button.*"
-                if lang == "en" else
-                "💡 *ಯಾವುದೇ ಬಿಲ್ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಕಾಪಿ ಮಾಡಿ, ನಂತರ ಮೇಲಿನ ಪೇಸ್ಟ್ ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.*"
-            )
-        else:
-            st.info("Direct clipboard paste requires streamlit-paste-button package.")
-
-    # Process scanned bill (from Drag & Drop or Clipboard Paste)
+    # Process scanned bill (from Drag & Drop or File Browse)
     extracted_data = None
     preview_img = None
     doc_source = None
@@ -117,15 +89,6 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
         except Exception as ex:
             scan_error = str(ex)
 
-    elif paste_result and paste_result.image_data is not None:
-        try:
-            preview_img = paste_result.image_data
-            doc_source = "Clipboard Pasted Image"
-            with st.spinner("⚡ " + ("Analyzing pasted bill with AI Vision Scanner..." if lang == "en" else "ಪೇಸ್ಟ್ ಮಾಡಿದ ಬಿಲ್ ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...")):
-                extracted_data = bill_scanner.analyze_bill_image(preview_img)
-        except Exception as ex:
-            scan_error = str(ex)
-
     if scan_error:
         st.error(f"❌ Error scanning bill: {scan_error}. Please ensure the bill image is clear and try again.")
 
@@ -135,7 +98,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
         with st.container(border=True):
             st.markdown(
                 "#### ✅ " + ("Bill Analysis Successful" if lang == "en" else "ಬಿಲ್ ವಿಶ್ಲೇಷಣೆ ಯಶಸ್ವಿಯಾಗಿದೆ") +
-                f" &nbsp; `<span style='font-size:0.85rem;color:#059669;'>Confidence: {extracted_data.get('confidence', 95)}%</span>`",
+                f" &nbsp; *(Confidence: {extracted_data.get('confidence', 95)}%)*",
                 unsafe_allow_html=True
             )
 
