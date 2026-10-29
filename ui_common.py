@@ -8,6 +8,7 @@ Supports 5 distinct visual design themes:
   5. Smooth Tactile · Monochromatic neumorphic soft-UI
 """
 
+import textwrap
 import streamlit as st
 import text
 
@@ -45,7 +46,7 @@ def _on_theme_dropdown_change():
 
 
 def apply_custom_css():
-    """Inject the active theme CSS and localStorage persistence script."""
+    """Inject the active theme CSS and localStorage persistence script using st.html."""
     active_theme = get_current_theme()
 
     # Browser JavaScript to keep localStorage in sync and restore on cold visit
@@ -68,11 +69,10 @@ def apply_custom_css():
     }})();
     </script>
     """
-    st.markdown(storage_sync_js, unsafe_allow_html=True)
+    st.html(textwrap.dedent(storage_sync_js).strip(), unsafe_allow_javascript=True)
 
     # Base common structure: full-width tabs, neat layouts
     base_css = """
-    <style>
     /* Full width tabs styling across all themes */
     div[data-baseweb="tab-list"] {
         display: flex !important;
@@ -92,13 +92,11 @@ def apply_custom_css():
     [data-testid="stSidebarCollapseButton"] button {
         opacity: 0.8 !important;
     }
-    </style>
     """
 
     # 1. CLASSIC CLEAN (DEFAULT)
     if active_theme == "classic":
         theme_css = """
-        <style>
         .stApp {
             background-color: #f8fafc !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
@@ -154,13 +152,11 @@ def apply_custom_css():
             color: #ffffff !important;
             font-weight: 700 !important;
         }
-        </style>
         """
 
     # 2. NEON GLASS (Dark glassmorphism with blur and glowing borders)
     elif active_theme == "neon_glass":
         theme_css = """
-        <style>
         .stApp {
             background: radial-gradient(ellipse at 50% 15%, #1e133e 0%, #0d1224 45%, #04060f 100%) !important;
             background-attachment: fixed !important;
@@ -259,13 +255,11 @@ def apply_custom_css():
             color: #ffffff !important;
             font-weight: 700 !important;
         }
-        </style>
         """
 
     # 3. SOFT CLAY (Soft 3D pastel elements with rounded shadows)
     elif active_theme == "soft_clay":
         theme_css = """
-        <style>
         .stApp {
             background-color: #dff0fc !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
@@ -349,13 +343,11 @@ def apply_custom_css():
         [data-testid="stSidebarNavLink"][aria-current="page"] span {
             color: #1d4ed8 !important;
         }
-        </style>
         """
 
     # 4. COZY WOOL (Textured fabric look with stitched borders)
     elif active_theme == "cozy_wool":
         theme_css = """
-        <style>
         .stApp {
             background-color: #f5efe4 !important;
             background-image: radial-gradient(#d6cbba 1.5px, transparent 1.5px) !important;
@@ -437,13 +429,11 @@ def apply_custom_css():
             color: #ffffff !important;
             font-weight: 700 !important;
         }
-        </style>
         """
 
     # 5. SMOOTH TACTILE (Monochromatic neumorphic soft-UI)
     elif active_theme == "smooth_tactile":
         theme_css = """
-        <style>
         .stApp {
             background-color: #e4e8ee !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
@@ -519,10 +509,10 @@ def apply_custom_css():
             color: #059669 !important;
             font-weight: 700 !important;
         }
-        </style>
         """
 
-    st.markdown(base_css + theme_css, unsafe_allow_html=True)
+    clean_css = textwrap.dedent(base_css).strip() + "\n" + textwrap.dedent(theme_css).strip()
+    st.html(f"<style>\n{clean_css}\n</style>")
 
 
 def render_sidebar():
@@ -531,8 +521,8 @@ def render_sidebar():
     active_theme = get_current_theme()
 
     with st.sidebar:
-        st.markdown(f"<h2 style='margin-bottom:2px;'>{text.T('app_title', current_lang)}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size:0.85em; margin-bottom:14px; opacity:0.8;'>{text.T('app_subtitle', current_lang)}</div>", unsafe_allow_html=True)
+        st.markdown(f"## {text.T('app_title', current_lang)}")
+        st.caption(text.T("app_subtitle", current_lang))
         st.divider()
 
         # Clean Global Theme Selector Dropdown in Sidebar
@@ -552,29 +542,31 @@ def render_sidebar():
 
         user = st.session_state.get("user")
         if user:
-            # User profile card
-            st.markdown(f"""
+            # User profile card rendered via clean HTML
+            card_html = f"""
             <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); padding:12px; border-radius:10px; margin-bottom:14px;">
                 <div style="font-size:0.75em; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; opacity:0.8;">{text.T('sidebar_logged_in', current_lang)}</div>
                 <div style="font-size:1.05em; font-weight:700;">👤 {user['name']}</div>
                 <div style="font-size:0.85em; opacity:0.85;">📞 {user['phone']}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """
+            st.html(textwrap.dedent(card_html).strip())
 
             # Logout button
             if st.button(text.T("sidebar_logout", current_lang), use_container_width=True, type="secondary"):
                 st.session_state["user"] = None
                 st.rerun()
         else:
-            st.markdown(f"""
+            login_hint_html = f"""
             <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); padding:12px; border-radius:10px; font-size:0.9em; margin-bottom:14px;">
                 {text.T('sidebar_please_login', current_lang)}
             </div>
-            """, unsafe_allow_html=True)
+            """
+            st.html(textwrap.dedent(login_hint_html).strip())
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size:0.85em; opacity:0.8;'>{text.T('sidebar_helpline', current_lang)}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size:0.85em; opacity:0.8;'>{text.T('sidebar_mithra', current_lang)}</div>", unsafe_allow_html=True)
+        st.caption(text.T("sidebar_helpline", current_lang))
+        st.caption(text.T("sidebar_mithra", current_lang))
 
 
 def rupees(x):
