@@ -15,36 +15,17 @@ import db
 import ui_common
 import text
 
-# Shared imports with safe temporary fallbacks
-try:
-    from engine import RATE, FIXED_PER_KW, TAX, GJ_CAP, AWAY_SHARE, to_pay, normal_use, fuel_shock
-except ImportError:
-    # TEMP until engine.py is ready
-    RATE = 5.80
-    FIXED_PER_KW = 150
-    TAX = 0.09
-    GJ_CAP = 200
-    AWAY_SHARE = 0.30
-
-    def to_pay(units, days, kw, fuel, free_units):
-        energy = units * RATE
-        fixed = kw * FIXED_PER_KW * (days / 30.0)
-        full = energy + fixed + (units * fuel) + (energy * TAX)
-        if free_units is None or units > GJ_CAP:
-            return full
-        if units <= free_units:
-            return 0.0
-        return (units - free_units) * (RATE * (1.0 + TAX) + fuel)
-
-    def normal_use(bills):
-        if not bills:
-            return 0.0
-        recent = bills[-6:] if len(bills) >= 6 else bills
-        rates = [b["units"] / max(1, b.get("days", 30)) for b in recent]
-        return sum(rates) / len(rates)
-
-    def fuel_shock(units, days, kw, fuel_now, fuel_new, free_units):
-        return round((fuel_new - fuel_now) * units, 2)
+from engine import (
+    RATE,
+    FIXED_PER_KW,
+    TAX,
+    GJ_CAP,
+    AWAY_SHARE,
+    to_pay,
+    normal_use,
+    fuel_shock,
+    rates_vs_usage,
+)
 
 ui_common.apply_custom_css()
 ui_common.render_sidebar()
