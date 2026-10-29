@@ -19,26 +19,8 @@ import ui_common
 import text
 import questions
 
-# Attempt import from engine with TEMP fallback
-try:
-    from engine import explain, RATE, TAX, GJ_CAP, full_bill, to_pay, normal_use
-except ImportError:
-    # TEMP until engine.py is ready
-    RATE = 5.80
-    TAX = 0.09
-    GJ_CAP = 200
-
-    def explain(bills, answers):
-        return [], 0.0, 5.0
-
-    def to_pay(u, d, kw, f, free):
-        energy = u * RATE
-        full = energy + kw * 150 * d / 30 + u * f + energy * TAX
-        if free is None or u > GJ_CAP:
-            return full
-        if u <= free:
-            return 0.0
-        return (u - free) * (RATE * (1 + TAX) + f)
+# Direct import from engine (no TEMP fallback — engine is stable)
+from engine import explain, RATE, TAX, GJ_CAP, full_bill, to_pay, normal_use
 
 # Ensure user dict compatibility for ui_common
 if isinstance(st.session_state.get("user"), dict):
