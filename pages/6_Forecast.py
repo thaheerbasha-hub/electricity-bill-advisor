@@ -30,18 +30,19 @@ from engine import (
 ui_common.apply_custom_css()
 ui_common.render_sidebar()
 
+# lang must be defined before any text.T() call, including inside login guard
+lang = st.session_state.get("lang", "en")
+
 user = st.session_state.get("user")
 if not user:
     c_w, c_b = st.columns([3, 1])
     with c_w:
-        st.warning(text.T("sidebar_please_login", lang) if "sidebar_please_login" in text.STRINGS else "Please log in to view your personalized forecast.")
+        st.warning(text.T("sidebar_please_login", lang))
     with c_b:
         if st.button("Preview with Demo Profile", key="demo_login_forecast"):
             st.session_state["user"] = {"id": 1, "name": "Ramesh Kumar (Demo)", "phone": "9876543210"}
             st.rerun()
     st.stop()
-
-lang = st.session_state.get("lang", "en")
 
 st.title(text.T("forecast_title", lang))
 st.caption(text.T("forecast_caption", lang))
@@ -61,12 +62,10 @@ kw = float(latest.get("load_kw", 2.0))
 free = latest.get("free_units")
 last_days = int(latest.get("days", 30))
 
-# Contract check for fuel rate
-if "fuel_per_unit" in latest and latest["fuel_per_unit"] is not None:
-    last_fuel_rate = float(latest["fuel_per_unit"])
-else:
-    last_fuel_rate = float(latest.get("fuel_rs", 0.0)) / max(float(latest["units"]), 1.0)
-last_fuel_rate = round(last_fuel_rate, 2)
+# fuel_per_unit is always the per-unit rate from db.get_bills()
+# fuel_rs is set as an alias for the same value (both are per-unit, NOT totals)
+# Never divide by units here — that would make it ~0
+last_fuel_rate = round(float(latest.get("fuel_per_unit") or latest.get("fuel_rs") or 0.0), 2)
 
 # 1. Inputs refining next month forecast
 st.subheader(text.T("forecast_q_sub", lang))
