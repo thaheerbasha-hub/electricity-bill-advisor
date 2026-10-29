@@ -3,6 +3,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.db
+power_coach.db
 .Python
 env/
 venv/

@@ -2,17 +2,20 @@
 db.py · SQLite database for Power Bill Coach
 Tables:
   - users (id, name, phone, pin_hash)
-  - bills (id, user_id, month, units, days, estimated, fuel_rs, free_units, load_kw)
+  - bills (id, user_id, month, units, days, estimated, fuel_per_unit, free_units, load_kw)
 
 Shared helpers:
+  - init_db()
   - add_user(name, phone, pin)
   - check_login(phone, pin)
-  - add_bill(user_id, month, units, days, estimated, fuel_rs, free_units, load_kw)
+  - add_bill(user_id, month, units, days, estimated, fuel_per_unit, free_units, load_kw)
+  - update_bill(bill_id, user_id, month, units, days, estimated, fuel_per_unit, free_units, load_kw)
+  - delete_bill(bill_id, user_id=None)
   - get_bills(user_id)
-  - delete_bill(bill_id, user_id)
 """
 
 import hashlib
+import math
 import os
 import sqlite3
 
@@ -30,39 +33,63 @@ def hash_pin(pin: str) -> str:
     return hashlib.sha256(f"{salt}_{pin}".encode("utf-8")).hexdigest()
 
 
+def _num(x, default=0.0):
+    if x is None:
+        return default
+    if isinstance(x, str):
+        x = x.strip()
+        if not x:
+            return default
+    try:
+        val = float(x)
+        if math.isnan(val) or math.isinf(val):
+            return default
+        return val
+    except (ValueError, TypeError):
+        return default
+
+
 def init_db():
     conn = get_conn()
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        phone TEXT UNIQUE NOT NULL,
-        pin_hash TEXT NOT NULL
-    );
-    """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT UNIQUE NOT NULL,
+            pin_hash TEXT NOT NULL
+        );
+        """)
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS bills (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        month TEXT NOT NULL,
-        units REAL NOT NULL,
-        days INTEGER NOT NULL,
-        estimated INTEGER NOT NULL DEFAULT 0,
-        fuel_rs REAL NOT NULL DEFAULT 0.0,
-        free_units REAL,
-        load_kw REAL NOT NULL DEFAULT 2.0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-    """)
-    conn.commit()
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS bills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            month TEXT NOT NULL,
+            units REAL NOT NULL,
+            days INTEGER NOT NULL,
+            estimated INTEGER NOT NULL DEFAULT 0,
+            fuel_per_unit REAL NOT NULL DEFAULT 0.0,
+            free_units REAL,
+            load_kw REAL NOT NULL DEFAULT 2.0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        """)
+        conn.commit()
 
-    # Seed the ready-made demo user if not present
-    seed_demo_user(conn)
-    conn.close()
+        # Check for column rename migration
+        cur.execute("PRAGMA table_info(bills);")
+        cols = [r["name"] if isinstance(r, sqlite3.Row) else r[1] for r in cur.fetchall()]
+        if "fuel_rs" in cols:
+            cur.execute("ALTER TABLE bills RENAME COLUMN fuel_rs TO fuel_per_unit;")
+            conn.commit()
+
+        seed_demo_user(conn)
+    finally:
+        conn.close()
 
 
 def seed_demo_user(conn):
@@ -76,30 +103,49 @@ def seed_demo_user(conn):
             ("Ramesh Kumar (Demo)", "9876543210", pin_h)
         )
         user_id = cur.lastrowid
+    else:
+        user_id = demo["id"] if isinstance(demo, sqlite3.Row) else demo[0]
 
-        # 6 sample bills leading up to the Dasara festival / vacation jump
+    cur.execute("SELECT id, month FROM bills WHERE user_id = ?", (user_id,))
+    existing_bills = cur.fetchall()
+
+    def is_old_month(m):
+        if not m:
+            return True
+        s = str(m).strip()
+        if len(s) == 7 and s[:4].isdigit() and s[4] == '-' and s[5:].isdigit():
+            return False
+        return True
+
+    needs_reseed = (len(existing_bills) == 0) or any(
+        is_old_month(b["month"] if isinstance(b, sqlite3.Row) else b[1]) for b in existing_bills
+    )
+
+    if needs_reseed:
+        cur.execute("DELETE FROM bills WHERE user_id = ?", (user_id,))
         sample_bills = [
-            ("May 2026", 152.0, 30, 0, 0.35, 150.0, 2.0),
-            ("Jun 2026", 160.0, 31, 0, 0.35, 150.0, 2.0),
-            ("Jul 2026", 148.0, 30, 0, 0.35, 150.0, 2.0),
-            ("Aug 2026", 155.0, 31, 0, 0.37, 150.0, 2.0),
-            ("Sep 2026", 168.0, 30, 0, 0.37, 150.0, 2.0),
-            ("Oct 2026", 206.0, 31, 0, 0.37, 150.0, 2.0),  # Crossed 200 GJ limit!
+            ("2026-05", 152.0, 30, 0, 0.35, 150.0, 2.0),
+            ("2026-06", 160.0, 31, 0, 0.35, 150.0, 2.0),
+            ("2026-07", 148.0, 30, 0, 0.35, 150.0, 2.0),
+            ("2026-08", 155.0, 31, 0, 0.37, 150.0, 2.0),
+            ("2026-09", 168.0, 30, 0, 0.37, 150.0, 2.0),
+            ("2026-10", 206.0, 31, 0, 0.37, 150.0, 2.0),
         ]
         for b in sample_bills:
             cur.execute("""
-            INSERT INTO bills (user_id, month, units, days, estimated, fuel_rs, free_units, load_kw)
+            INSERT INTO bills (user_id, month, units, days, estimated, fuel_per_unit, free_units, load_kw)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (user_id, b[0], b[1], b[2], b[3], b[4], b[5], b[6]))
         conn.commit()
 
 
-def add_user(name: str, phone: str, pin: str) -> bool:
-    phone = phone.strip()
-    name = name.strip()
-    pin = pin.strip()
-    if len(phone) < 10 or not pin:
-        return False
+def add_user(name: str, phone: str, pin: str):
+    name = (name or "").strip()
+    phone = (phone or "").strip()
+    pin = (pin or "").strip()
+    if len(phone) < 10 or not pin or not name:
+        return None
+    conn = None
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -108,59 +154,125 @@ def add_user(name: str, phone: str, pin: str) -> bool:
             (name, phone, hash_pin(pin))
         )
         conn.commit()
-        conn.close()
-        return True
+        return cur.lastrowid
     except sqlite3.IntegrityError:
-        return False
+        return None
+    except Exception:
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def check_login(phone: str, pin: str):
-    phone = phone.strip()
-    pin = pin.strip()
+    phone = (phone or "").strip()
+    pin = (pin or "").strip()
     conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, name, phone, pin_hash FROM users WHERE phone = ?",
-        (phone,)
-    )
-    row = cur.fetchone()
-    conn.close()
-    if row and row["pin_hash"] == hash_pin(pin):
-        return {"id": row["id"], "name": row["name"], "phone": row["phone"]}
-    return None
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, name, phone, pin_hash FROM users WHERE phone = ?",
+            (phone,)
+        )
+        row = cur.fetchone()
+        if row and row["pin_hash"] == hash_pin(pin):
+            return {"id": row["id"], "name": row["name"], "phone": row["phone"]}
+        return None
+    finally:
+        conn.close()
 
 
-def add_bill(user_id: int, month: str, units: float, days: int, estimated: bool, fuel_rs: float, free_units: float, load_kw: float):
+def add_bill(user_id: int, month: str, units, days, estimated, fuel_per_unit, free_units, load_kw):
+    u = max(0.0, _num(units, 0.0))
+    d = max(1, int(round(_num(days, 1.0))))
+    est = 1 if estimated else 0
+    f = max(0.0, _num(fuel_per_unit, 0.0))
+    if free_units is None or (isinstance(free_units, str) and not free_units.strip()):
+        free_u = None
+    else:
+        val = _num(free_units, None)
+        free_u = max(0.0, val) if val is not None else None
+    kw = max(0.0, _num(load_kw, 0.0))
+    m = str(month).strip() if month else ""
+
     conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-    INSERT INTO bills (user_id, month, units, days, estimated, fuel_rs, free_units, load_kw)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (user_id, month.strip(), float(units), int(days), 1 if estimated else 0, float(fuel_rs), free_units, float(load_kw)))
-    conn.commit()
-    conn.close()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO bills (user_id, month, units, days, estimated, fuel_per_unit, free_units, load_kw)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, m, u, d, est, f, free_u, kw))
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def update_bill(bill_id: int, user_id: int, month: str, units, days, estimated, fuel_per_unit, free_units, load_kw):
+    u = max(0.0, _num(units, 0.0))
+    d = max(1, int(round(_num(days, 1.0))))
+    est = 1 if estimated else 0
+    f = max(0.0, _num(fuel_per_unit, 0.0))
+    if free_units is None or (isinstance(free_units, str) and not free_units.strip()):
+        free_u = None
+    else:
+        val = _num(free_units, None)
+        free_u = max(0.0, val) if val is not None else None
+    kw = max(0.0, _num(load_kw, 0.0))
+    m = str(month).strip() if month else ""
+
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+        UPDATE bills
+        SET month = ?, units = ?, days = ?, estimated = ?, fuel_per_unit = ?, free_units = ?, load_kw = ?
+        WHERE id = ? AND user_id = ?
+        """, (m, u, d, est, f, free_u, kw, bill_id, user_id))
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
+def delete_bill(bill_id: int, user_id: int = None):
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        if user_id is not None:
+            cur.execute("DELETE FROM bills WHERE id = ? AND user_id = ?", (bill_id, user_id))
+        else:
+            cur.execute("DELETE FROM bills WHERE id = ?", (bill_id,))
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
 
 
 def get_bills(user_id: int):
     conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-    SELECT id, month, units, days, estimated, fuel_rs, free_units, load_kw, created_at
-    FROM bills
-    WHERE user_id = ?
-    ORDER BY id ASC
-    """, (user_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    conn.close()
-    return rows
-
-
-def delete_bill(bill_id: int, user_id: int):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM bills WHERE id = ? AND user_id = ?", (bill_id, user_id))
-    conn.commit()
-    conn.close()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+        SELECT id, month, units, days, estimated, fuel_per_unit, free_units, load_kw
+        FROM bills
+        WHERE user_id = ?
+        ORDER BY month ASC, id ASC
+        """, (user_id,))
+        rows = []
+        for r in cur.fetchall():
+            d = dict(r)
+            d["units"] = float(d["units"])
+            d["days"] = int(d["days"])
+            d["estimated"] = bool(d["estimated"])
+            d["fuel_per_unit"] = float(d["fuel_per_unit"])
+            d["fuel_rs"] = d["fuel_per_unit"]
+            d["free_units"] = float(d["free_units"]) if d["free_units"] is not None else None
+            d["load_kw"] = float(d["load_kw"])
+            rows.append(d)
+        return rows
+    finally:
+        conn.close()
 
 
 # Initialize table on import
