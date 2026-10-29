@@ -6,11 +6,13 @@ Features:
   - Next month questions (away days, planned guests, summer flag)
   - Fuel shock simulator box (FPPCA variations)
   - Mid-month meter check: enter Day 15 reading to predict if you'll cross 200 units!
+  - Fully bilingual (English / Kannada)
 """
 
 import streamlit as st
 import db
 import ui_common
+import text
 
 ui_common.apply_custom_css()
 ui_common.render_sidebar()
@@ -20,31 +22,33 @@ if not user:
     st.warning("Please log in first.")
     st.stop()
 
-st.title("🔮 Next Month Forecast & Mid-Month Check")
-st.caption("Plan your power consumption ahead, prevent fuel price shocks, and check your mid-month pace.")
+lang = st.session_state.get("lang", "en")
+
+st.title(text.T("forecast_title", lang))
+st.caption(text.T("forecast_caption", lang))
 
 bills = db.get_bills(user["id"])
 if not bills:
-    st.warning("Please add at least one bill in **My Bills** to calculate a forecast baseline.")
+    st.warning("Please add at least one bill in **My Bills** to calculate a forecast baseline." if lang == "en" else "ಮುನ್ಸೂಚನೆ ಲೆಕ್ಕಹಾಕಲು ದಯವಿಟ್ಟು **ನನ್ನ ಬಿಲ್‌ಗಳು** ಪುಟದಲ್ಲಿ ಕನಿಷ್ಠ 1 ಬಿಲ್ ಸೇರಿಸಿ.")
     st.stop()
 
 latest = bills[-1]
 normal_daily = latest["units"] / max(latest["days"], 1)
 
-st.subheader("1 · Forecast Questions for Next Month")
+st.subheader(text.T("forecast_q_sub", lang))
 c1, c2, c3 = st.columns(3)
 with c1:
-    away_next = st.number_input("Days you will be away next month", 0, 31, 0)
+    away_next = st.number_input(text.T("forecast_away", lang), 0, 31, 0)
 with c2:
-    guests_next = st.number_input("Extra guests expected next month", 0, 20, 0)
+    guests_next = st.number_input(text.T("forecast_guests", lang), 0, 20, 0)
 with c3:
-    summer_next = st.checkbox("Summer season (Mar to May)")
+    summer_next = st.checkbox(text.T("forecast_summer", lang))
 
-st.subheader("2 · Fuel Price Simulator")
+st.subheader(text.T("forecast_fuel_sub", lang))
 fuel_next = st.number_input(
-    "Simulated Fuel Surcharge / FPPCA (₹/unit)",
+    text.T("forecast_fuel_label", lang),
     min_value=0.0, max_value=3.0, value=float(latest["fuel_rs"]), step=0.05,
-    help="Try ₹1.00 to see what an energy cost increase does to your bill even if you use the same power."
+    help=text.T("forecast_fuel_help", lang)
 )
 
 # Baseline projection
@@ -72,29 +76,28 @@ b_mid = to_pay(mid_u, fuel_next)
 b_hi = to_pay(hi_u, fuel_next)
 
 with st.container(border=True):
-    st.markdown(f"### Estimated Bill: {ui_common.rupees(b_lo)} – {ui_common.rupees(b_hi)}")
-    st.caption(f"Most likely **{ui_common.rupees(b_mid)}** (~{mid_u:.0f} units) assuming normal household patterns.")
+    st.markdown(f"### {text.T('forecast_est_bill', lang)} {ui_common.rupees(b_lo)} – {ui_common.rupees(b_hi)}")
+    st.caption(f"{text.T('forecast_likely', lang)}: **{ui_common.rupees(b_mid)}** (~{mid_u:.0f} units)")
     if latest.get("free_units") and hi_u > GJ_CAP:
-        st.error(f"⚠️ **High Risk:** Your upper projection crosses 200 units ({hi_u:.0f} units). Aim to stay below {GJ_CAP/30:.1f} units/day to protect your Gruha Jyothi benefit!")
+        st.error(text.T("forecast_risk_high", lang))
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Mid-Month Check
 with st.container(border=True):
-    st.subheader("⚡ Mid-Month Pacing Check (Read Your Meter Today)")
-    st.write("Check your meter around day 15 of your cycle to avoid sudden surprises:")
+    st.subheader(text.T("forecast_mid_sub", lang))
+    st.write(text.T("forecast_mid_desc", lang))
     
     col_a, col_b = st.columns(2)
     with col_a:
-        cur_meter = st.number_input("Units used so far since last bill", min_value=0, max_value=2000, value=int(normal_daily * 15))
+        cur_meter = st.number_input(text.T("forecast_units_used", lang), min_value=0, max_value=2000, value=int(normal_daily * 15))
     with col_b:
-        cur_days = st.number_input("Days elapsed since last bill", min_value=1, max_value=35, value=15)
+        cur_days = st.number_input(text.T("forecast_days_passed", lang), min_value=1, max_value=35, value=15)
         
     projected_month = (cur_meter / cur_days) * 30
-    st.markdown(f"**Paced Monthly Consumption:** `{projected_month:.0f} units`")
+    st.markdown(f"**{text.T('forecast_paced_usage', lang)}** `{projected_month:.0f} units`")
     
     if latest.get("free_units") and projected_month > GJ_CAP:
-        st.error(f"🚨 At this pace ({projected_month:.0f} units), you will exceed 200 units and **lose Gruha Jyothi**! "
-                 f"Keep usage under `{(GJ_CAP - cur_meter) / max(30 - cur_days, 1):.1f} units/day` for the rest of the cycle.")
+        st.error(text.T("forecast_lose_gj", lang))
     else:
-        st.success(f"✅ On track! At this pace ({projected_month:.0f} units), you are safely within your quota.")
+        st.success(text.T("forecast_on_track", lang))
