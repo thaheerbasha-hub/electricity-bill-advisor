@@ -7,7 +7,7 @@ STRINGS = {
     # --- Navigation & Sections ---
     "sec_dashboard": {"en": "Dashboard", "kn": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್"},
     "sec_analysis": {"en": "Bills & Analysis", "kn": "ಬಿಲ್‌ಗಳು ಮತ್ತು ವಿಶ್ಲೇಷಣೆ"},
-    "sec_reference": {"en": "Reference & Rules", "kn": "ಮಾಹಿತಿ ಮತ್ತು ನಿಯಮಗಳು"},
+    "sec_reference": {"en": "Reference & Settings", "kn": "ಮಾಹಿತಿ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಸ್"},
 
     "nav_login": {"en": "Login / Sign Up", "kn": "ಲಾಗ್ ಇನ್ / ಸೈನ್ ಅಪ್"},
     "nav_home": {"en": "Home Dashboard", "kn": "ಮುಖಪುಟ (Home)"},
@@ -16,6 +16,7 @@ STRINGS = {
     "nav_results": {"en": "Results & Insights", "kn": "ಫಲಿತಾಂಶ & ಉಳಿತಾಯ"},
     "nav_forecast": {"en": "Forecast & Check", "kn": "ಮುನ್ಸೂಚನೆ & ತಪಾಸಣೆ"},
     "nav_about": {"en": "About Karnataka", "kn": "ಕರ್ನಾಟಕ ಬೆಸ್ಕಾಂ ಮಾಹಿತಿ"},
+    "nav_settings": {"en": "Settings", "kn": "ಸೆಟ್ಟಿಂಗ್ಸ್"},
 
     # --- Brand & Header ---
     "app_title": {"en": "⚡ Power Bill Coach · Karnataka", "kn": "⚡ ವಿದ್ಯುತ್ ಬಿಲ್ ಕೋಚ್ · ಕರ್ನಾಟಕ"},
@@ -26,17 +27,27 @@ STRINGS = {
     # --- Sidebar ---
     "sidebar_logged_in": {"en": "Logged In As", "kn": "ಲಾಗಿನ್ ಆಗಿರುವ ಬಳಕೆದಾರ"},
     "sidebar_please_login": {"en": "🔐 Please log in to view your household bills and insights.", "kn": "🔐 ನಿಮ್ಮ ಮನೆಯ ಬಿಲ್ ನೋಡಲು ದಯವಿಟ್ಟು ಲಾಗ್ ಇನ್ ಮಾಡಿ."},
-    "sidebar_lang_label": {"en": "Language / ಭಾಷೆ", "kn": "ಭಾಷೆ / Language"},
     "sidebar_logout": {"en": "🚪 Log Out", "kn": "🚪 ಲಾಗ್ ಔಟ್"},
     "sidebar_helpline": {"en": "☎️ BESCOM Helpline: 1912", "kn": "☎️ ಬೆಸ್ಕಾಂ ಸಹಾಯವಾಣಿ: 1912"},
     "sidebar_mithra": {"en": "📱 BESCOM Mithra App for official meter complaints", "kn": "📱 ಅಧಿಕೃತ ಮೀಟರ್ ದೂರುಗಳಿಗೆ ಬೆಸ್ಕಾಂ ಮಿತ್ರ ಆ್ಯಪ್"},
+
+    # --- Tabs ---
+    "tab_login": {"en": "🔑 Log In", "kn": "🔑 ಲಾಗ್ ಇನ್"},
+    "tab_signup": {"en": "📝 Create Account", "kn": "📝 ಹೊಸ ಖಾತೆ ರಚಿಸಿ"},
+    "tab_settings": {"en": "⚙️ Settings", "kn": "⚙️ ಸೆಟ್ಟಿಂಗ್ಸ್"},
+
+    # --- Settings Tab & Page ---
+    "settings_sub": {"en": "Application Settings & Preferences", "kn": "ಅಪ್ಲಿಕೇಶನ್ ಸೆಟ್ಟಿಂಗ್ಸ್ ಮತ್ತು ಆದ್ಯತೆಗಳು"},
+    "settings_lang_label": {"en": "Preferred Language / ಭಾಷೆ", "kn": "ಆದ್ಯತೆಯ ಭಾಷೆ / Language"},
+    "settings_lang_help": {"en": "Choose your preferred language. All tabs, navigation, and charts will switch instantly.", "kn": "ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ. ಎಲ್ಲಾ ಪುಟಗಳು ತಕ್ಷಣ ಬದಲಾಗುತ್ತವೆ."},
+    "settings_account_sub": {"en": "Account Information", "kn": "ಖಾತೆ ವಿವರಗಳು"},
+    "settings_theme_sub": {"en": "Display & Contrast", "kn": "ಪ್ರದರ್ಶನ ಮತ್ತು ಥೀಮ್"},
+    "settings_theme_desc": {"en": "High contrast Karnataka BESCOM theme is active.", "kn": "ಕರ್ನಾಟಕ ಬೆಸ್ಕಾಂ ಹೈ-ಕಾಂಟ್ರಾಸ್ಟ್ ಥೀಮ್ ಸಕ್ರಿಯವಾಗಿದೆ."},
 
     # --- Login Page ---
     "judge_card_title": {"en": "🚀 Quick Access for Judges & Reviewers", "kn": "🚀 ತ್ವರಿತ ಡೆಮೊ ಪ್ರವೇಶ (ಪರಿಶೀಲಕರಿಗೆ)"},
     "judge_card_desc": {"en": "Skip typing and test the full app immediately with 6 pre-loaded sample bills:", "kn": "ಟೈಪ್ ಮಾಡದೆ 6 ಮಾದರಿ ಬಿಲ್‌ಗಳೊಂದಿಗೆ ಅಪ್ಲಿಕೇಶನ್ ತಕ್ಷಣ ಪರೀಕ್ಷಿಸಿ:"},
     "judge_btn": {"en": "⚡ Launch Instant Demo Account", "kn": "⚡ ತ್ವರಿತ ಡೆಮೊ ಖಾತೆ ಪ್ರಾರಂಭಿಸಿ"},
-    "tab_login": {"en": "🔑 Log In", "kn": "🔑 ಲಾಗ್ ಇನ್"},
-    "tab_signup": {"en": "📝 Create Account", "kn": "📝 ಹೊಸ ಖಾತೆ ರಚಿಸಿ"},
     "login_sub": {"en": "Log in to your account", "kn": "ನಿಮ್ಮ ಖಾತೆಗೆ ಲಾಗ್ ಇನ್ ಮಾಡಿ"},
     "phone_label": {"en": "Mobile Number (10 digits)", "kn": "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (10 ಅಂಕಿಗಳು)"},
     "phone_placeholder": {"en": "e.g. 9876543210", "kn": "ಉದಾ: 9876543210"},

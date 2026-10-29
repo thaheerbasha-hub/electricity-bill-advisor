@@ -5,7 +5,7 @@ Lead / Frame: THAHEER
 Features:
   - Gatekeeper with st.navigation:
       • If not logged in -> Only show Login page (navigation hidden)
-      • If logged in -> Full menu (Home, My Bills, What Changed, Results, Forecast, About Karnataka)
+      • If logged in -> Full menu (Home, My Bills, What Changed, Results, Forecast, About Karnataka, Settings)
   - Full dynamic translation of sidebar navigation with explicit single emojis and white text
 """
 
@@ -25,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Apply global styling directly at the app root so the sidebar is styled immediately
+# Apply global styling directly at the app root
 ui_common.apply_custom_css()
 
 # Initialize Session State defaults
@@ -45,6 +45,7 @@ what_changed_page = st.Page("pages/4_What_Changed.py", title=text.T("nav_changed
 results_page = st.Page("pages/5_Results.py", title=text.T("nav_results", lang), icon="📊", url_path="results")
 forecast_page = st.Page("pages/6_Forecast.py", title=text.T("nav_forecast", lang), icon="🔮", url_path="forecast")
 about_page = st.Page("pages/7_About_Karnataka.py", title=text.T("nav_about", lang), icon="🏛️", url_path="about")
+settings_page = st.Page("pages/8_Settings.py", title=text.T("nav_settings", lang), icon="⚙️", url_path="settings")
 
 # Gatekeeper routing:
 if not st.session_state.get("user"):
@@ -59,7 +60,7 @@ else:
     pg = st.navigation({
         sec_dash: [home_page],
         sec_analysis: [bills_page, what_changed_page, results_page, forecast_page],
-        sec_ref: [about_page]
+        sec_ref: [about_page, settings_page]
     })
 
 # Execute active page

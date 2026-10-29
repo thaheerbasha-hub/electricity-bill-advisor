@@ -68,7 +68,7 @@ def apply_custom_css():
     }
     
     /* =========================================================
-       2. TABS: Side-by-side, full-width, clean
+       2. TABS: Side-by-side, equal width, clean
        ========================================================= */
     div[data-baseweb="tab-list"] {
         display: flex !important;
@@ -141,7 +141,8 @@ def apply_custom_css():
     ul[data-testid="stSidebarNavItems"] span,
     ul[data-testid="stSidebarNavItems"] a,
     ul[data-testid="stSidebarNavItems"] div,
-    div[data-testid="stSidebarNav"] span {
+    div[data-testid="stSidebarNav"] span,
+    li[data-testid="stSidebarNavLink"] * {
         color: #ffffff !important;
         fill: #ffffff !important;
         opacity: 1 !important;
@@ -150,7 +151,7 @@ def apply_custom_css():
         font-weight: 600 !important;
     }
     
-    /* Make navigation labels bold and clearly readable */
+    /* Navigation link text */
     [data-testid="stSidebarNavLink"] span {
         color: #ffffff !important;
         display: inline-block !important;
@@ -183,12 +184,6 @@ def apply_custom_css():
         font-weight: 700 !important;
     }
     
-    /* Radio buttons in sidebar */
-    section[data-testid="stSidebar"] .stRadio label,
-    section[data-testid="stSidebar"] .stRadio div {
-        color: #ffffff !important;
-    }
-    
     /* Buttons in sidebar */
     section[data-testid="stSidebar"] button {
         background-color: #1e293b !important;
@@ -199,13 +194,8 @@ def apply_custom_css():
     """, unsafe_allow_html=True)
 
 
-def _on_sidebar_lang_change():
-    chosen = st.session_state.get("sidebar_lang_selector")
-    st.session_state["lang"] = "kn" if chosen == "ಕನ್ನಡ" else "en"
-
-
 def render_sidebar():
-    """Consistent sidebar across pages"""
+    """Consistent clean sidebar across pages"""
     current_lang = st.session_state.get("lang", "en")
 
     with st.sidebar:
@@ -215,17 +205,6 @@ def render_sidebar():
 
         user = st.session_state.get("user")
         if user:
-            # Language switcher in sidebar for logged in users
-            st.radio(
-                text.T("sidebar_lang_label", current_lang),
-                options=["English", "ಕನ್ನಡ"],
-                index=0 if current_lang == "en" else 1,
-                horizontal=True,
-                key="sidebar_lang_selector",
-                on_change=_on_sidebar_lang_change
-            )
-            st.divider()
-
             # User profile card
             st.markdown(f"""
             <div style="background:#1e293b; border:1px solid #334155; padding:12px; border-radius:10px; margin-bottom:14px;">
