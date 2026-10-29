@@ -72,7 +72,7 @@ last_fuel_rate = round(last_fuel_rate, 2)
 st.subheader(text.T("forecast_q_sub", lang))
 c1, c2, c3 = st.columns(3)
 with c1:
-    away_next = st.number_input(text.T("forecast_away", lang), 0, 31, 0)
+    away_next = st.number_input(text.T("forecast_away", lang), 0, 30, 0)
 with c2:
     guests_next = st.number_input(text.T("forecast_guests", lang), 0, 20, 0)
 with c3:
@@ -88,8 +88,9 @@ fuel_next = st.number_input(
     help=text.T("forecast_fuel_shock_help", lang),
 )
 
-# Baseline projection calculations
-eff_days = (30.0 - away_next) + (AWAY_SHARE * away_next)
+# Baseline projection calculations (capped at 30 days and clamped to AWAY_SHARE * 30 minimum)
+away_clamped = min(30.0, max(0.0, float(away_next)))
+eff_days = max(AWAY_SHARE * 30.0, (30.0 - away_clamped) + (AWAY_SHARE * away_clamped))
 projected_units = (normal_daily * eff_days * (1.15 if summer_next else 1.0)) + (guests_next * 1.2 * 7.0)
 
 low_u, mid_u, hi_u = projected_units * 0.9, projected_units, projected_units * 1.1
@@ -107,34 +108,38 @@ with st.container(border=True):
         f"{text.T('forecast_likely', lang)}: **{ui_common.rupees(b_mid)} (estimate)** (~{mid_u:.0f} units (estimate))"
     )
 
-    # "Rates vs you" line: breaking down change vs last bill
-    cost_old_usage_new_rates = to_pay(float(latest["units"]), days=30, kw=kw, fuel=fuel_next, free_units=free)
-    rate_diff_rs = round(cost_old_usage_new_rates - last_bill_paid)
-    usage_diff_rs = round(b_mid - cost_old_usage_new_rates)
-    total_diff_rs = round(b_mid - last_bill_paid)
-
-    if total_diff_rs > 5:
-        st.info(
-            text.T(
-                "forecast_rates_breakdown_more",
-                lang,
-                diff_rs=abs(total_diff_rs),
-                rate_diff_rs=rate_diff_rs,
-                usage_diff_rs=usage_diff_rs,
-            )
-        )
-    elif total_diff_rs < -5:
-        st.info(
-            text.T(
-                "forecast_rates_breakdown_less",
-                lang,
-                diff_rs=abs(total_diff_rs),
-                rate_diff_rs=rate_diff_rs,
-                usage_diff_rs=usage_diff_rs,
-            )
-        )
+    # When projected bill is zero under Gruha Jyothi, do not show contradictory breakdown
+    if b_mid <= 0:
+        st.success(text.T("forecast_zero_bill_gj", lang))
     else:
-        st.info(text.T("forecast_rates_breakdown_same", lang, diff_rs=abs(total_diff_rs)))
+        # "Rates vs you" line: breaking down change vs last bill, reconciled with headline
+        total_diff_rs = round(b_mid - last_bill_paid)
+        cost_old_usage_new_rates = to_pay(float(latest["units"]), days=last_days, kw=kw, fuel=fuel_next, free_units=free)
+        rate_diff_rs = round(cost_old_usage_new_rates - last_bill_paid)
+        usage_diff_rs = total_diff_rs - rate_diff_rs
+
+        if total_diff_rs > 5:
+            st.info(
+                text.T(
+                    "forecast_rates_breakdown_more",
+                    lang,
+                    diff_rs=abs(total_diff_rs),
+                    rate_diff_rs=rate_diff_rs,
+                    usage_diff_rs=usage_diff_rs,
+                )
+            )
+        elif total_diff_rs < -5:
+            st.info(
+                text.T(
+                    "forecast_rates_breakdown_less",
+                    lang,
+                    diff_rs=abs(total_diff_rs),
+                    rate_diff_rs=rate_diff_rs,
+                    usage_diff_rs=usage_diff_rs,
+                )
+            )
+        else:
+            st.info(text.T("forecast_rates_breakdown_same", lang, diff_rs=abs(total_diff_rs)))
 
     # Fuel shock callout (when fuel_next is higher than last bill's fuel rate)
     if fuel_next > last_fuel_rate:

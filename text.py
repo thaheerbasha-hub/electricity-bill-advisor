@@ -177,6 +177,7 @@ STRINGS = {
     "forecast_rates_breakdown_more": {"en": "Projected bill is ~Rs {diff_rs} higher than last month: ~Rs {rate_diff_rs} is from tariff/fuel changes (not your fault), and ~Rs {usage_diff_rs} is from your household usage change (estimate).", "kn": ""},
     "forecast_rates_breakdown_less": {"en": "Projected bill is ~Rs {diff_rs} lower than last month: ~Rs {rate_diff_rs} is from tariff/fuel changes (not your fault), and ~Rs {usage_diff_rs} is from your household usage change (estimate).", "kn": ""},
     "forecast_rates_breakdown_same": {"en": "Projected bill is roughly the same as last month (~Rs {diff_rs} difference) (estimate).", "kn": ""},
+    "forecast_zero_bill_gj": {"en": "At this usage your bill stays Rs 0 (within your free Gruha Jyothi units).", "kn": ""},
     "forecast_fuel_shock_callout": {"en": "A fuel price shock adds about Rs {extra_rs} to your next bill with the same usage. That part is not your fault.", "kn": ""},
     "forecast_fuel_shock_help": {"en": "Simulated Fuel Surcharge / FPPCA in Rs/unit (try Rs 1.00 to see what an energy cost increase does to your bill even if you use the same power, e.g. a Strait of Hormuz crisis).", "kn": ""},
 
