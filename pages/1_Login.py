@@ -21,6 +21,13 @@ def _on_lang_switch():
     st.session_state["lang"] = "kn" if chosen == "ಕನ್ನಡ" else "en"
 
 
+def _on_login_theme_change():
+    chosen_label = st.session_state.get("login_theme_selector")
+    chosen_key = ui_common.THEME_DISPLAY_TO_KEY.get(chosen_label, "classic")
+    st.session_state["theme"] = chosen_key
+    st.query_params["theme"] = chosen_key
+
+
 # Centered Layout
 _, main_col, _ = st.columns([1, 8, 1])
 
@@ -122,13 +129,17 @@ with main_col:
         with sub_tab_theme:
             st.subheader(text.T("theme_title", lang))
             st.write(text.T("theme_desc", lang))
+
+            current_theme_key = ui_common.get_current_theme()
+            current_theme_label = ui_common.THEMES.get(current_theme_key, "Classic Clean (Default)")
+            theme_options = list(ui_common.THEMES.values())
+            curr_idx = theme_options.index(current_theme_label) if current_theme_label in theme_options else 0
+
             st.selectbox(
                 text.T("theme_title", lang),
-                options=[
-                    text.T("theme_default", lang),
-                    "Custom Theme 1 (Preview)",
-                    "Custom Theme 2 (Preview)"
-                ],
-                key="login_theme_selector"
+                options=theme_options,
+                index=curr_idx,
+                key="login_theme_selector",
+                on_change=_on_login_theme_change
             )
-            st.info(text.T("theme_coming_soon", lang))
+            st.caption("Theme selection applies globally and persists in your browser." if lang == "en" else "ಥೀಮ್ ಆಯ್ಕೆಯು ಎಲ್ಲಾ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸುತ್ತದೆ.")

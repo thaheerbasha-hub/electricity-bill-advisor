@@ -23,8 +23,15 @@ def _on_settings_lang_change():
     st.session_state["lang"] = "kn" if chosen == "ಕನ್ನಡ" else "en"
 
 
+def _on_settings_theme_change():
+    chosen_label = st.session_state.get("main_settings_theme_selector")
+    chosen_key = ui_common.THEME_DISPLAY_TO_KEY.get(chosen_label, "classic")
+    st.session_state["theme"] = chosen_key
+    st.query_params["theme"] = chosen_key
+
+
 st.title(text.T("settings_sub", lang))
-st.caption("Customize your display language, theme preferences, and account profile.")
+st.caption("Customize your display language, theme preferences, and account profile." if lang == "en" else "ನಿಮ್ಮ ಭಾಷೆ, ಥೀಮ್ ಆದ್ಯತೆಗಳು ಮತ್ತು ಖಾತೆಯ ವಿವರಗಳನ್ನು ಕಸ್ಟಮೈಸ್ ಮಾಡಿ.")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -50,16 +57,43 @@ with sub_lang:
 with sub_theme:
     st.subheader(text.T("theme_title", lang))
     st.write(text.T("theme_desc", lang))
+
+    current_theme_key = ui_common.get_current_theme()
+    current_theme_label = ui_common.THEMES.get(current_theme_key, "Classic Clean (Default)")
+    theme_options = list(ui_common.THEMES.values())
+    curr_idx = theme_options.index(current_theme_label) if current_theme_label in theme_options else 0
+
     st.selectbox(
         text.T("theme_title", lang),
-        options=[
-            text.T("theme_default", lang),
-            "Custom Theme 1 (Preview)",
-            "Custom Theme 2 (Preview)"
-        ],
-        key="main_theme_selector"
+        options=theme_options,
+        index=curr_idx,
+        key="main_settings_theme_selector",
+        on_change=_on_settings_theme_change
     )
-    st.info(text.T("theme_coming_soon", lang))
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("#### " + ("Theme Previews & Features" if lang == "en" else "ಥೀಮ್ ವಿವರಣೆಗಳು"))
+    
+    t_c1, t_c2 = st.columns(2)
+    with t_c1:
+        st.markdown("""
+        **1. Classic Clean (Default)**  
+        *Original professional layout with crisp white cards, slate text, and emerald accents.*
+        
+        **2. Neon Glass**  
+        *Futuristic cosmic dark glassmorphism with frosted blur, glowing cyan/purple borders, and glowing metric pills.*
+        
+        **3. Soft Clay**  
+        *Playful 3D puffed pastel candy elements with rounded soft clay shadows and powder blue canvas.*
+        """)
+    with t_c2:
+        st.markdown("""
+        **4. Cozy Wool**  
+        *Tactile warm tweed canvas with stitched dashed borders, fabric patch cards, and stitched forest-green badges.*
+        
+        **5. Smooth Tactile**  
+        *Monochromatic soft-UI neumorphic design with extruded surface cards and sunken inset input wells.*
+        """)
 
 with sub_account:
     st.subheader(text.T("settings_account_sub", lang))
