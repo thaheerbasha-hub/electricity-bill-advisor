@@ -6,7 +6,7 @@ Features:
   - Gatekeeper with st.navigation:
       • If not logged in -> Only show Login page (navigation hidden)
       • If logged in -> Full menu (Home, My Bills, What Changed, Results, Forecast, About Karnataka)
-  - Full dynamic translation of sidebar navigation based on st.session_state["lang"]
+  - Full dynamic translation of sidebar navigation with explicit single emojis and white text
 """
 
 import streamlit as st
@@ -28,21 +28,21 @@ if "lang" not in st.session_state:
 
 lang = st.session_state.get("lang", "en")
 
-# Define pages for st.navigation with bilingual labels
-login_page = st.Page("pages/1_Login.py", title=text.T("nav_login", lang), icon="🔐")
-home_page = st.Page("pages/2_Home.py", title=text.T("nav_home", lang), icon="⚡", default=True)
-bills_page = st.Page("pages/3_My_Bills.py", title=text.T("nav_bills", lang), icon="📄")
-what_changed_page = st.Page("pages/4_What_Changed.py", title=text.T("nav_changed", lang), icon="🔍")
-results_page = st.Page("pages/5_Results.py", title=text.T("nav_results", lang), icon="📊")
-forecast_page = st.Page("pages/6_Forecast.py", title=text.T("nav_forecast", lang), icon="🔮")
-about_page = st.Page("pages/7_About_Karnataka.py", title=text.T("nav_about", lang), icon="🏛️")
+# Define pages for st.navigation with explicit url_paths and single icons
+login_page = st.Page("pages/1_Login.py", title=text.T("nav_login", lang), icon="🔐", url_path="login")
+home_page = st.Page("pages/2_Home.py", title=text.T("nav_home", lang), icon="⚡", default=True, url_path="home")
+bills_page = st.Page("pages/3_My_Bills.py", title=text.T("nav_bills", lang), icon="📄", url_path="bills")
+what_changed_page = st.Page("pages/4_What_Changed.py", title=text.T("nav_changed", lang), icon="🔍", url_path="what-changed")
+results_page = st.Page("pages/5_Results.py", title=text.T("nav_results", lang), icon="📊", url_path="results")
+forecast_page = st.Page("pages/6_Forecast.py", title=text.T("nav_forecast", lang), icon="🔮", url_path="forecast")
+about_page = st.Page("pages/7_About_Karnataka.py", title=text.T("nav_about", lang), icon="🏛️", url_path="about")
 
 # Gatekeeper routing:
 if not st.session_state.get("user"):
     # When logged out, lock navigation strictly to Login page
     pg = st.navigation([login_page], position="hidden")
 else:
-    # When logged in, present structured multi-page navigation localized in selected language
+    # When logged in, present structured multi-page navigation
     sec_dash = text.T("sec_dashboard", lang)
     sec_analysis = text.T("sec_analysis", lang)
     sec_ref = text.T("sec_reference", lang)
