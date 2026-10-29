@@ -38,7 +38,7 @@ def get_current_theme():
 
 
 def _on_theme_dropdown_change():
-    """Callback when user changes theme in sidebar."""
+    """Callback when user changes theme."""
     chosen_label = st.session_state.get("global_sidebar_theme_selector")
     chosen_key = THEME_DISPLAY_TO_KEY.get(chosen_label, "classic")
     st.session_state["theme"] = chosen_key
@@ -61,8 +61,12 @@ def apply_custom_css():
     """
     st.html(textwrap.dedent(storage_sync_js).strip(), unsafe_allow_javascript=True)
 
-    # Base common structure: full-width tabs, neat layouts
+    # Base common structure: full-width tabs, neat layouts, transparent header
     base_css = """
+    /* Make Streamlit top header transparent across all themes */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
     /* Full width tabs styling across all themes */
     div[data-baseweb="tab-list"] {
         display: flex !important;
@@ -84,19 +88,26 @@ def apply_custom_css():
     }
     """
 
-    # 1. CLASSIC CLEAN (DEFAULT)
+    # 1. CLASSIC CLEAN (DEFAULT - LIGHT)
     if active_theme == "classic":
         theme_css = """
         .stApp {
             background-color: #f8fafc !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
         }
-        [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] div[data-testid="stMarkdownContainer"] p, .main p {
+        /* High-contrast dark text on light canvas */
+        [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] span, [data-testid="stMain"] div, .main p {
             color: #0f172a !important;
         }
         [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3, [data-testid="stMain"] h4 {
             color: #0f172a !important;
             font-weight: 700 !important;
+        }
+        [data-testid="stMain"] strong, [data-testid="stMain"] b {
+            color: #0f172a !important;
+        }
+        [data-testid="stMain"] .stCaption, [data-testid="stMain"] [data-testid="stCaptionContainer"] p, [data-testid="stMain"] [data-testid="stCaptionContainer"] * {
+            color: #475569 !important;
         }
         [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #ffffff !important;
@@ -112,7 +123,7 @@ def apply_custom_css():
             box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.06) !important;
         }
         [data-testid="stMetricLabel"] p {
-            color: #64748b !important;
+            color: #475569 !important;
             font-size: 0.88rem !important;
             font-weight: 600 !important;
         }
@@ -121,6 +132,7 @@ def apply_custom_css():
             font-size: 1.85rem !important;
             font-weight: 800 !important;
         }
+        /* Buttons */
         .stButton>button[kind="primary"] {
             background-color: #059669 !important;
             border: 1px solid #059669 !important;
@@ -128,6 +140,31 @@ def apply_custom_css():
             border-radius: 8px !important;
             font-weight: 600 !important;
         }
+        .stButton>button[kind="primary"] * {
+            color: #ffffff !important;
+        }
+        .stButton>button, .stButton>button[kind="secondary"] {
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+        }
+        .stButton>button p, .stButton>button span, .stButton>button div {
+            color: #0f172a !important;
+        }
+        .stButton>button:hover, .stButton>button[kind="secondary"]:hover {
+            background-color: #f1f5f9 !important;
+            border-color: #94a3b8 !important;
+        }
+        /* Code tag */
+        code, .stMarkdown code {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+            border-radius: 6px !important;
+            padding: 2px 6px !important;
+        }
+        /* Dark Sidebar */
         section[data-testid="stSidebar"] {
             background-color: #0f172a !important;
         }
@@ -144,7 +181,7 @@ def apply_custom_css():
         }
         """
 
-    # 2. NEON GLASS (Dark glassmorphism with blur and glowing borders)
+    # 2. NEON GLASS (DARK GLASSMORPHISM WITH HIGH CONTRAST INVERTED TEXT)
     elif active_theme == "neon_glass":
         theme_css = """
         .stApp {
@@ -152,24 +189,29 @@ def apply_custom_css():
             background-attachment: fixed !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
-        [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] span, [data-testid="stMain"] div[data-testid="stMarkdownContainer"] p, .main p {
-            color: #f1f5f9 !important;
+        /* Pure white & light text on dark cosmic background */
+        [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] div[data-testid="stMarkdownContainer"] p, .main p {
+            color: #f8fafc !important;
         }
         [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3, [data-testid="stMain"] h4 {
             color: #ffffff !important;
             text-shadow: 0 0 16px rgba(168, 85, 247, 0.45) !important;
             font-weight: 800 !important;
         }
-        [data-testid="stMain"] .stCaption, [data-testid="stMain"] [data-testid="stCaptionContainer"] p {
-            color: #94a3b8 !important;
+        [data-testid="stMain"] strong, [data-testid="stMain"] b {
+            color: #ffffff !important;
+        }
+        [data-testid="stMain"] .stCaption, [data-testid="stMain"] [data-testid="stCaptionContainer"] p, [data-testid="stMain"] [data-testid="stCaptionContainer"] * {
+            color: #cbd5e1 !important;
+            font-weight: 500 !important;
         }
         [data-testid="stMain"] [data-testid="stWidgetLabel"] label, [data-testid="stMain"] [data-testid="stWidgetLabel"] p {
-            color: #e2e8f0 !important;
+            color: #f1f5f9 !important;
             font-weight: 600 !important;
         }
         /* Translucent Frosted Glass Cards */
         [data-testid="stVerticalBlockBorderWrapper"] {
-            background: rgba(15, 23, 42, 0.62) !important;
+            background: rgba(15, 23, 42, 0.65) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
             border: 1px solid rgba(168, 85, 247, 0.35) !important;
@@ -187,20 +229,20 @@ def apply_custom_css():
             box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(168, 85, 247, 0.12) !important;
         }
         [data-testid="column"]:nth-of-type(1) [data-testid="stMetric"] {
-            border-color: rgba(56, 189, 248, 0.55) !important;
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.25), inset 0 0 14px rgba(56, 189, 248, 0.12) !important;
+            border-color: rgba(56, 189, 248, 0.6) !important;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.28), inset 0 0 14px rgba(56, 189, 248, 0.12) !important;
         }
         [data-testid="column"]:nth-of-type(2) [data-testid="stMetric"] {
-            border-color: rgba(96, 165, 250, 0.55) !important;
-            box-shadow: 0 0 20px rgba(96, 165, 250, 0.25), inset 0 0 14px rgba(96, 165, 250, 0.12) !important;
+            border-color: rgba(96, 165, 250, 0.6) !important;
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.28), inset 0 0 14px rgba(96, 165, 250, 0.12) !important;
         }
         [data-testid="column"]:nth-of-type(3) [data-testid="stMetric"] {
-            border-color: rgba(168, 85, 247, 0.55) !important;
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.25), inset 0 0 14px rgba(168, 85, 247, 0.12) !important;
+            border-color: rgba(168, 85, 247, 0.6) !important;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.28), inset 0 0 14px rgba(168, 85, 247, 0.12) !important;
         }
         [data-testid="column"]:nth-of-type(4) [data-testid="stMetric"] {
-            border-color: rgba(244, 63, 94, 0.55) !important;
-            box-shadow: 0 0 20px rgba(244, 63, 94, 0.25), inset 0 0 14px rgba(244, 63, 94, 0.12) !important;
+            border-color: rgba(244, 63, 94, 0.6) !important;
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.28), inset 0 0 14px rgba(244, 63, 94, 0.12) !important;
         }
         [data-testid="stMetricLabel"] p {
             color: #cbd5e1 !important;
@@ -209,7 +251,44 @@ def apply_custom_css():
         [data-testid="stMetricValue"] div {
             color: #ffffff !important;
             font-weight: 800 !important;
-            text-shadow: 0 0 12px rgba(255, 255, 255, 0.4) !important;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.5) !important;
+        }
+        /* High-contrast Buttons in Neon Glass */
+        .stButton>button[kind="primary"] {
+            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%) !important;
+            border: 1px solid #a855f7 !important;
+            color: #ffffff !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 18px rgba(124, 58, 237, 0.6) !important;
+        }
+        .stButton>button[kind="primary"] * {
+            color: #ffffff !important;
+        }
+        /* Secondary Buttons (Open ->, Logout, etc.) - Dark glass with glowing border & white text */
+        .stButton>button, .stButton>button[kind="secondary"] {
+            background: rgba(24, 34, 53, 0.85) !important;
+            border: 1.5px solid rgba(168, 85, 247, 0.55) !important;
+            color: #ffffff !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 0 14px rgba(168, 85, 247, 0.25) !important;
+        }
+        .stButton>button p, .stButton>button span, .stButton>button div {
+            color: #ffffff !important;
+        }
+        .stButton>button:hover, .stButton>button[kind="secondary"]:hover {
+            background: rgba(45, 60, 90, 0.95) !important;
+            border-color: rgba(192, 132, 252, 0.85) !important;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.55) !important;
+        }
+        /* Code badges (e.g. 6 units) */
+        code, .stMarkdown code {
+            background: rgba(30, 41, 59, 0.85) !important;
+            color: #38bdf8 !important;
+            border: 1px solid rgba(56, 189, 248, 0.4) !important;
+            border-radius: 6px !important;
+            padding: 2px 6px !important;
         }
         /* Inputs */
         [data-testid="stMain"] .stTextInput input, [data-testid="stMain"] .stNumberInput input {
@@ -218,15 +297,6 @@ def apply_custom_css():
             border: 1.5px solid rgba(139, 92, 246, 0.45) !important;
             border-radius: 10px !important;
             box-shadow: 0 0 12px rgba(139, 92, 246, 0.25) !important;
-        }
-        /* Buttons */
-        .stButton>button[kind="primary"] {
-            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%) !important;
-            border: 1px solid #a855f7 !important;
-            color: #ffffff !important;
-            border-radius: 10px !important;
-            font-weight: 700 !important;
-            box-shadow: 0 0 18px rgba(124, 58, 237, 0.6) !important;
         }
         /* Sidebar in Neon Glass */
         section[data-testid="stSidebar"] {
@@ -247,19 +317,27 @@ def apply_custom_css():
         }
         """
 
-    # 3. SOFT CLAY (Soft 3D pastel elements with rounded shadows)
+    # 3. SOFT CLAY (PASTEL BLUE - HIGH CONTRAST DARK TEXT)
     elif active_theme == "soft_clay":
         theme_css = """
         .stApp {
             background-color: #dff0fc !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
-        [data-testid="stMain"], [data-testid="stMain"] p, .main p {
-            color: #1e293b !important;
+        /* High-contrast dark text on pastel blue */
+        [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] span, [data-testid="stMain"] div, .main p {
+            color: #0f172a !important;
         }
         [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3, [data-testid="stMain"] h4 {
             color: #0f172a !important;
             font-weight: 800 !important;
+        }
+        [data-testid="stMain"] strong, [data-testid="stMain"] b {
+            color: #0f172a !important;
+        }
+        [data-testid="stMain"] .stCaption, [data-testid="stMain"] [data-testid="stCaptionContainer"] p, [data-testid="stMain"] [data-testid="stCaptionContainer"] * {
+            color: #334155 !important;
+            font-weight: 500 !important;
         }
         /* Claymorphic 3D Puffed Cards */
         [data-testid="stVerticalBlockBorderWrapper"] {
@@ -276,19 +354,19 @@ def apply_custom_css():
             box-shadow: 8px 10px 20px rgba(147, 178, 207, 0.4), inset -3px -3px 6px rgba(0, 0, 0, 0.05), inset 3px 3px 6px #ffffff !important;
         }
         [data-testid="column"]:nth-of-type(1) [data-testid="stMetric"] {
-            background: #d7edfd !important; /* Pastel baby blue */
+            background: #d7edfd !important;
         }
         [data-testid="column"]:nth-of-type(2) [data-testid="stMetric"] {
-            background: #d6f5f3 !important; /* Pastel mint cyan */
+            background: #d6f5f3 !important;
         }
         [data-testid="column"]:nth-of-type(3) [data-testid="stMetric"] {
-            background: #ffdfe5 !important; /* Pastel soft peach/pink */
+            background: #ffdfe5 !important;
         }
         [data-testid="column"]:nth-of-type(4) [data-testid="stMetric"] {
-            background: #fff1d4 !important; /* Pastel butter yellow */
+            background: #fff1d4 !important;
         }
         [data-testid="stMetricLabel"] p {
-            color: #475569 !important;
+            color: #334155 !important;
             font-weight: 700 !important;
         }
         [data-testid="stMetricValue"] div {
@@ -305,6 +383,31 @@ def apply_custom_css():
             font-weight: 700 !important;
             box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.2), inset 3px 3px 6px rgba(255, 255, 255, 0.4), 6px 8px 18px rgba(59, 130, 246, 0.35) !important;
         }
+        .stButton>button[kind="primary"] * {
+            color: #ffffff !important;
+        }
+        .stButton>button, .stButton>button[kind="secondary"] {
+            background: #ffffff !important;
+            border: none !important;
+            color: #1e3a8a !important;
+            border-radius: 16px !important;
+            font-weight: 700 !important;
+            box-shadow: 4px 6px 14px rgba(147, 178, 207, 0.45), inset 1px 1px 3px #ffffff !important;
+        }
+        .stButton>button p, .stButton>button span, .stButton>button div {
+            color: #1e3a8a !important;
+        }
+        .stButton>button:hover, .stButton>button[kind="secondary"]:hover {
+            background: #f0f7ff !important;
+            box-shadow: inset 2px 2px 5px rgba(147, 178, 207, 0.4) !important;
+        }
+        /* Code badges */
+        code, .stMarkdown code {
+            background: #cce4f7 !important;
+            color: #1e3a8a !important;
+            border-radius: 6px !important;
+            padding: 2px 6px !important;
+        }
         /* Inputs with soft inset */
         [data-testid="stMain"] .stTextInput input, [data-testid="stMain"] .stNumberInput input {
             color: #0f172a !important;
@@ -319,10 +422,10 @@ def apply_custom_css():
             border-right: 2px solid #b7d6ee !important;
         }
         section[data-testid="stSidebar"], section[data-testid="stSidebar"] * {
-            color: #1e293b !important;
+            color: #0f172a !important;
         }
         [data-testid="stSidebarNavLink"] span {
-            color: #1e293b !important;
+            color: #0f172a !important;
             font-weight: 700 !important;
         }
         [data-testid="stSidebarNavLink"][aria-current="page"] {
@@ -335,7 +438,7 @@ def apply_custom_css():
         }
         """
 
-    # 4. COZY WOOL (Textured fabric look with stitched borders)
+    # 4. COZY WOOL (WARM OATMEAL - HIGH CONTRAST DARK TEXT)
     elif active_theme == "cozy_wool":
         theme_css = """
         .stApp {
@@ -344,12 +447,20 @@ def apply_custom_css():
             background-size: 16px 16px !important;
             font-family: Georgia, Cambria, "Times New Roman", serif !important;
         }
-        [data-testid="stMain"], [data-testid="stMain"] p, .main p {
-            color: #2d241e !important;
+        /* High-contrast espresso / charcoal text on warm fabric */
+        [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] span, [data-testid="stMain"] div, .main p {
+            color: #1c1510 !important;
         }
         [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3, [data-testid="stMain"] h4 {
             color: #1c1510 !important;
             font-weight: 700 !important;
+        }
+        [data-testid="stMain"] strong, [data-testid="stMain"] b {
+            color: #1c1510 !important;
+        }
+        [data-testid="stMain"] .stCaption, [data-testid="stMain"] [data-testid="stCaptionContainer"] p, [data-testid="stMain"] [data-testid="stCaptionContainer"] * {
+            color: #4a3e35 !important;
+            font-weight: 500 !important;
         }
         /* Fabric Patch Stitched Cards */
         [data-testid="stVerticalBlockBorderWrapper"] {
@@ -358,7 +469,7 @@ def apply_custom_css():
             border-radius: 16px !important;
             box-shadow: 4px 4px 0px #cfc4b2 !important;
         }
-        /* 4 Warm Wool Fabric Swatch Cards matching reference */
+        /* 4 Warm Wool Fabric Swatch Cards */
         [data-testid="stMetric"] {
             border-radius: 16px !important;
             padding: 16px 18px !important;
@@ -367,16 +478,16 @@ def apply_custom_css():
             font-family: Georgia, Cambria, serif !important;
         }
         [data-testid="column"]:nth-of-type(1) [data-testid="stMetric"] {
-            background: #e5decb !important; /* Oatmeal tweed */
+            background: #e5decb !important;
         }
         [data-testid="column"]:nth-of-type(2) [data-testid="stMetric"] {
-            background: #eae2d3 !important; /* Khaki patch */
+            background: #eae2d3 !important;
         }
         [data-testid="column"]:nth-of-type(3) [data-testid="stMetric"] {
-            background: #f1ebd8 !important; /* Flaxen linen */
+            background: #f1ebd8 !important;
         }
         [data-testid="column"]:nth-of-type(4) [data-testid="stMetric"] {
-            background: #d8c7af !important; /* Tan suede */
+            background: #d8c7af !important;
         }
         [data-testid="stMetricLabel"] p {
             color: #3e3328 !important;
@@ -386,14 +497,7 @@ def apply_custom_css():
             color: #1f1812 !important;
             font-weight: 800 !important;
         }
-        /* Inputs styled like woven tags */
-        [data-testid="stMain"] .stTextInput input, [data-testid="stMain"] .stNumberInput input {
-            color: #2d241e !important;
-            background-color: #f4eee4 !important;
-            border: 1.5px dashed #a89f91 !important;
-            border-radius: 10px !important;
-        }
-        /* Buttons like stitched fabric badge */
+        /* Stitched buttons */
         .stButton>button[kind="primary"] {
             background-color: #236c39 !important;
             border: 2px dashed #ffffff !important;
@@ -401,6 +505,39 @@ def apply_custom_css():
             border-radius: 12px !important;
             font-weight: 700 !important;
             box-shadow: 3px 3px 0px #144021 !important;
+        }
+        .stButton>button[kind="primary"] * {
+            color: #ffffff !important;
+        }
+        .stButton>button, .stButton>button[kind="secondary"] {
+            background-color: #fdfbf7 !important;
+            border: 1.5px dashed #9c8e76 !important;
+            color: #1c1510 !important;
+            border-radius: 12px !important;
+            font-weight: 700 !important;
+            box-shadow: 3px 3px 0px #cfc4b2 !important;
+            font-family: Georgia, Cambria, serif !important;
+        }
+        .stButton>button p, .stButton>button span, .stButton>button div {
+            color: #1c1510 !important;
+        }
+        .stButton>button:hover, .stButton>button[kind="secondary"]:hover {
+            background-color: #ede5d6 !important;
+        }
+        /* Code badges */
+        code, .stMarkdown code {
+            background: #eae2d3 !important;
+            color: #1c1510 !important;
+            border: 1px dashed #9c8e76 !important;
+            border-radius: 6px !important;
+            padding: 2px 6px !important;
+        }
+        /* Inputs styled like woven tags */
+        [data-testid="stMain"] .stTextInput input, [data-testid="stMain"] .stNumberInput input {
+            color: #1c1510 !important;
+            background-color: #f4eee4 !important;
+            border: 1.5px dashed #a89f91 !important;
+            border-radius: 10px !important;
         }
         /* Sidebar: Dark Denim Felt with white stitching */
         section[data-testid="stSidebar"] {
@@ -421,19 +558,27 @@ def apply_custom_css():
         }
         """
 
-    # 5. SMOOTH TACTILE (Monochromatic neumorphic soft-UI)
+    # 5. SMOOTH TACTILE (MONOCHROMATIC NEUMORPHIC - HIGH CONTRAST CHARCOAL TEXT)
     elif active_theme == "smooth_tactile":
         theme_css = """
         .stApp {
             background-color: #e4e8ee !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
-        [data-testid="stMain"], [data-testid="stMain"] p, .main p {
-            color: #2d3748 !important;
+        /* High-contrast charcoal text on soft-gray */
+        [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] span, [data-testid="stMain"] div, .main p {
+            color: #1a202c !important;
         }
         [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3, [data-testid="stMain"] h4 {
             color: #1a202c !important;
             font-weight: 700 !important;
+        }
+        [data-testid="stMain"] strong, [data-testid="stMain"] b {
+            color: #1a202c !important;
+        }
+        [data-testid="stMain"] .stCaption, [data-testid="stMain"] [data-testid="stCaptionContainer"] p, [data-testid="stMain"] [data-testid="stCaptionContainer"] * {
+            color: #4a5568 !important;
+            font-weight: 500 !important;
         }
         /* Extruded Neumorphic Cards */
         [data-testid="stVerticalBlockBorderWrapper"] {
@@ -442,7 +587,7 @@ def apply_custom_css():
             border-radius: 22px !important;
             box-shadow: 8px 8px 18px #c2c9d4, -8px -8px 18px #ffffff !important;
         }
-        /* Extruded Neumorphic Metric Cards matching reference */
+        /* Extruded Neumorphic Metric Cards */
         [data-testid="stMetric"] {
             background: #e4e8ee !important;
             border: none !important;
@@ -451,32 +596,54 @@ def apply_custom_css():
             box-shadow: 8px 8px 18px #c2c9d4, -8px -8px 18px #ffffff !important;
         }
         [data-testid="stMetricLabel"] p {
-            color: #64748b !important;
+            color: #4a5568 !important;
             font-weight: 600 !important;
         }
         [data-testid="stMetricValue"] div {
             color: #1a202c !important;
             font-weight: 800 !important;
         }
-        /* Inset Neumorphic Inputs */
-        [data-testid="stMain"] .stTextInput input, [data-testid="stMain"] .stNumberInput input {
-            color: #2d3748 !important;
-            background-color: #e4e8ee !important;
-            border: none !important;
-            border-radius: 12px !important;
-            box-shadow: inset 4px 4px 8px #c2c9d4, inset -4px -4px 8px #ffffff !important;
-        }
-        /* Extruded Buttons */
+        /* Buttons */
         .stButton>button[kind="primary"] {
             background: #e4e8ee !important;
-            color: #059669 !important;
+            color: #047857 !important;
             font-weight: 700 !important;
             border: none !important;
             border-radius: 14px !important;
             box-shadow: 6px 6px 14px #c2c9d4, -6px -6px 14px #ffffff !important;
         }
-        .stButton>button[kind="primary"]:hover {
+        .stButton>button[kind="primary"] * {
+            color: #047857 !important;
+        }
+        .stButton>button, .stButton>button[kind="secondary"] {
+            background: #e4e8ee !important;
+            color: #1a202c !important;
+            font-weight: 700 !important;
+            border: none !important;
+            border-radius: 14px !important;
+            box-shadow: 6px 6px 14px #c2c9d4, -6px -6px 14px #ffffff !important;
+        }
+        .stButton>button p, .stButton>button span, .stButton>button div {
+            color: #1a202c !important;
+        }
+        .stButton>button:hover, .stButton>button[kind="secondary"]:hover {
             box-shadow: inset 3px 3px 6px #c2c9d4, inset -3px -3px 6px #ffffff !important;
+        }
+        /* Code badges */
+        code, .stMarkdown code {
+            background: #e4e8ee !important;
+            color: #047857 !important;
+            border-radius: 8px !important;
+            box-shadow: inset 2px 2px 4px #c2c9d4, inset -2px -2px 4px #ffffff !important;
+            padding: 2px 8px !important;
+        }
+        /* Inset Neumorphic Inputs */
+        [data-testid="stMain"] .stTextInput input, [data-testid="stMain"] .stNumberInput input {
+            color: #1a202c !important;
+            background-color: #e4e8ee !important;
+            border: none !important;
+            border-radius: 12px !important;
+            box-shadow: inset 4px 4px 8px #c2c9d4, inset -4px -4px 8px #ffffff !important;
         }
         /* Neumorphic Sidebar */
         section[data-testid="stSidebar"] {
@@ -484,10 +651,10 @@ def apply_custom_css():
             border-right: 1px solid #d5dce5 !important;
         }
         section[data-testid="stSidebar"], section[data-testid="stSidebar"] * {
-            color: #2d3748 !important;
+            color: #1a202c !important;
         }
         [data-testid="stSidebarNavLink"] span {
-            color: #2d3748 !important;
+            color: #1a202c !important;
             font-weight: 600 !important;
         }
         [data-testid="stSidebarNavLink"][aria-current="page"] {
@@ -496,7 +663,7 @@ def apply_custom_css():
             box-shadow: inset 4px 4px 8px #c2c9d4, inset -4px -4px 8px #ffffff !important;
         }
         [data-testid="stSidebarNavLink"][aria-current="page"] span {
-            color: #059669 !important;
+            color: #047857 !important;
             font-weight: 700 !important;
         }
         """
