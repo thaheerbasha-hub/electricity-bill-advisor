@@ -4,7 +4,7 @@ Extracts exact Karnataka BESCOM electricity bill fields from uploaded photos, cl
   - Account ID & Consumer Number
   - RR Number & Tariff Classification
   - Billing Month / Label (e.g. Sep 2013, Nov 2026)
-  - Units Consumed (kWh) (from 'Consumption' or 'Pres - Prev' reading)
+  - Units Consumed (kWh) (from 'Consumption', 'Pres - Prev' reading, or energy tiers)
   - Billing Days in Cycle (exact duration from billing period dates)
   - Estimated / Door Lock Status (Actual vs Door Lock DL)
   - Sanctioned Load (kW) (e.g. 10.0 kW, 2.0 kW)
@@ -77,9 +77,7 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
         data["account_id"] = acc_m.group(1)
 
     # 2. RR Number (ಆರ್.ಆರ್.ಸಂಖ್ಯೆ / RR Number: 14543E)
-    rr_m = re.search(r'(?:rr\s*(?:no\.?|num|number)?|ಆರ್\.ಆರ್)[^\n]*\n\s*([0-9]{3,6}[A-Z]{1,3}|[A-Z]{1,3}[0-9]{3,6})', full_text, re.IGNORECASE)
-    if not rr_m:
-        rr_m = re.search(r'(?:rr\s*(?:no\.?|num|number)?|ಆರ್\.ಆರ್)[:\s\-=]*([0-9]{3,6}[A-Z]{1,3}|[A-Z]{1,3}[0-9]{3,6})', full_text, re.IGNORECASE)
+    rr_m = re.search(r'(?:rr\s*num[a-z]*|rr\s*no\.?|rr)[\s\S]{0,15}?([0-9]{3,6}[A-Z]{1,3}|[A-Z]{1,3}[0-9]{3,6})', full_text, re.IGNORECASE)
     if rr_m:
         data["rr_number"] = rr_m.group(1).upper()
 
@@ -89,16 +87,18 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
         data["tariff"] = tariff_m.group(1).strip()
 
     # 4. Units Consumed (ಬಳಕೆ / Consumption: 4100)
-    units_m = re.search(r'(?:consumption|usage|ಬಳಕೆ)[^\n]*\n\s*(\d{1,6}(?:\.\d+)?)', full_text, re.IGNORECASE)
+    units_m = re.search(r'(?:consumption|usage|ಬಳಕೆ)[\s\S]{0,25}?(\d{1,6}(?:\.\d+)?)', full_text, re.IGNORECASE)
     if not units_m:
-        units_m = re.search(r'(?:consumption|usage|ಬಳಕೆ|units\s*consumed|billed\s*units)[:\s\-=]*(\d{1,6}(?:\.\d+)?)', full_text, re.IGNORECASE)
-    
+        units_m = re.search(r'(?:units\s*consumed|billed\s*units|total\s*units)[\s\S]{0,20}?(\d{1,6}(?:\.\d+)?)', full_text, re.IGNORECASE)
+    if not units_m:
+        units_m = re.search(r'(?<!free\s)(?<!entitled\s)\bunits\b[\s\S]{0,15}?(\d{1,6}(?:\.\d+)?)', full_text, re.IGNORECASE)
+
     if units_m:
         data["units"] = float(units_m.group(1))
     else:
         # Cross check Pres Rdg - Prev Rdg
-        pres_m = re.search(r'(?:pres\.?\s*rdg|ಪ್ರಸ್ತುತ)[^\n]*\n\s*(\d{2,6})', full_text, re.IGNORECASE)
-        prev_m = re.search(r'(?:prev\.?\s*rdg|ಹಿಂದಿನ)[^\n]*\n\s*(\d{2,6})', full_text, re.IGNORECASE)
+        pres_m = re.search(r'(?:pres[^\n]*rdg|ಪ್ರಸ್ತುತ)[^\d\n]*(\d{2,6})', full_text, re.IGNORECASE)
+        prev_m = re.search(r'(?:prev[^\n]*rdg|ಹಿಂದಿನ)[^\d\n]*(\d{2,6})', full_text, re.IGNORECASE)
         if pres_m and prev_m:
             try:
                 pr1 = float(pres_m.group(1))
@@ -109,21 +109,17 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
                 pass
 
     # 5. Sanctioned Load (ಮಂ. ಪ್ರಮಾಣ / Sanct. Load: 0.00HP+10.00KW)
-    load_m = re.search(r'(?:sanct|connected\s*load|ಪ್ರಮಾಣ)[^\n]*\n\s*(?:(\d+(?:\.\d+)?)\s*hp\s*\+\s*)?(\d+(?:\.\d+)?)\s*(?:kw)?', full_text, re.IGNORECASE)
-    if not load_m:
-        load_m = re.search(r'(?:sanct|load)[^\n]*?(?:(\d+(?:\.\d+)?)\s*hp\s*\+\s*)?(\d+(?:\.\d+)?)\s*(?:kw)', full_text, re.IGNORECASE)
-    if load_m:
-        kw = float(load_m.group(2)) if load_m.group(2) else 0.0
+    load_m = re.search(r'(?:(\d+(?:\.\d+)?)\s*hp\s*\+\s*)?(\d+(?:\.\d+)?)\s*kw', full_text, re.IGNORECASE)
+    if load_m and load_m.group(2):
+        kw = float(load_m.group(2))
         hp = float(load_m.group(1)) if load_m.group(1) else 0.0
         data["load_kw"] = round(kw + (hp * 0.746), 1) if (kw or hp) else 2.0
     else:
-        # Check single load pattern
         single_m = re.search(r'(?:sanct(?:ioned)?\s*load|load\s*\(?kw\)?|load)[:\s\-=]*(\d+(?:\.\d+)?)\s*(?:kw)?', full_text, re.IGNORECASE)
         if single_m:
             data["load_kw"] = float(single_m.group(1))
 
     # 6. Billing Period, Billing Days, and Month
-    # Pattern: 01/07/13 - 01/09/13 or 01/07/2026 to 01/08/2026
     period_m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})\s*[-–to]+\s*(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', full_text)
     if period_m:
         d1, m1, y1, d2, m2, y2 = period_m.groups()
@@ -140,7 +136,6 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
             pass
 
     if not data["month"]:
-        # Fallback to reading date, bill date, or due date
         date_m = re.search(r'(?:reading\s*date|bill\s*date|due\s*date|ದಿನಾಂಕ)[:\s\-=]*(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', full_text, re.IGNORECASE)
         if date_m:
             d, m, y = date_m.groups()
@@ -152,38 +147,31 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
                 pass
 
     if not data["month"]:
-        # Check text month e.g. Nov 2026 or September 2013
         name_m = re.search(r'\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[,\s\-_]+(202[0-9]|201[0-9])\b', full_text, re.IGNORECASE)
         if name_m:
             data["month"] = f"{name_m.group(1)[:3].capitalize()} {name_m.group(2)}"
 
     # 7. Fuel Surcharge / FPPCA / F.A.C.
-    fac_m = re.search(r'(?:f\.?a\.?c|fuel\s*surcharge|fppca|ಇಂಧನ)[^\n]*\n\s*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
-    if not fac_m:
-        fac_m = re.search(r'(?:f\.?a\.?c|fuel\s*surcharge|fppca|ಇಂಧನ)[:\s\-=]*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
+    fac_m = re.search(r'(?:f\.?a\.?c|fuel\s*surcharge|fppca|ಇಂಧನ)[\s\S]{0,15}?(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
     if fac_m:
         data["fuel_rs"] = float(fac_m.group(1))
 
     # 8. Financial Totals (Current Bill Amt & Net Amt Due)
-    b_m = re.search(r'(?:cuen|current\s*bill|bill\s*amt|ಬಿಲ್\s*ಮೊತ್ತ)[^\n]*\n\s*(\d{2,6}\.\d{2})', full_text, re.IGNORECASE)
-    if not b_m:
-        b_m = re.search(r'(?:cuen|current\s*bill|bill\s*amt|ಬಿಲ್\s*ಮೊತ್ತ)[:\s\-=]*(\d{2,6}\.\d{2})', full_text, re.IGNORECASE)
+    b_m = re.search(r'(?:cuen|current\s*bill|bill\s*amt|enbam|ಮೊತ್ತ)[\s\S]{0,15}?(\d{2,6}\.\d{2})', full_text, re.IGNORECASE)
     if b_m:
         data["bill_amount"] = float(b_m.group(1))
 
-    net_m = re.search(r'(?:nemd|net\s*amt|net\s*due|payable|ಪಾವತಿಸಬೇಕಾದ)[^\d\n]*(\d{2,6}(?:\.\d{2})?)', full_text, re.IGNORECASE)
+    net_m = re.search(r'(?:nemd|net\s*amt|net\s*due|total\s*payable|ಪಾವತಿಸಬೇಕಾದ|ad(?=\d{4}))[^\d\n]*(\d{3,6}(?:\.\d{2})?)', full_text, re.IGNORECASE)
     if net_m:
         data["net_amount"] = float(net_m.group(1))
 
     # 9. Gruha Jyothi Free Units Entitlement & Subsidy
-    gj_m = re.search(r'(?:gruha\s*jyothi|free\s*units|entitled\s*units|ಉಚಿತ\s*ಯೂನಿಟ್)[:\s\-=]*(\d{1,3})', full_text, re.IGNORECASE)
+    gj_m = re.search(r'(?:gruha\s*jyothi|free\s*units|entitled\s*units|ಉಚಿತ\s*ಯೂನಿಟ್)[\s\S]{0,15}?(\d{1,3})', full_text, re.IGNORECASE)
     if gj_m:
         data["free_units"] = int(gj_m.group(1))
     else:
         # Check GOK Subsidy (ಸರ್ಕಾರದ ಸಹಾಯಧನ / GOK Subsidy : 0.00)
-        gok_m = re.search(r'(?:gok\s*subsidy|govt\s*subsidy|ಸಹಾಯಧನ)[^\n]*\n\s*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
-        if not gok_m:
-            gok_m = re.search(r'(?:gok\s*subsidy|govt\s*subsidy|ಸಹಾಯಧನ)[:\s\-=]*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
+        gok_m = re.search(r'(?:gok\s*subsidy|govt\s*subsidy|ಸಹಾಯಧನ)[\s\S]{0,15}?(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
         if gok_m and float(gok_m.group(1)) == 0.0:
             data["free_units"] = None
         elif data.get("tariff") and "lt2a2" in data["tariff"].lower():
@@ -208,7 +196,6 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
     if data["bill_amount"] is not None: score += 15
     data["confidence"] = min(score, 100)
 
-    # If units is still None, return None so UI can report error instead of fake values
     return data
 
 
@@ -217,6 +204,16 @@ def analyze_bill_image(pil_img: Image.Image) -> dict:
     engine = get_ocr_engine()
     if engine is None:
         raise RuntimeError("RapidOCR engine is not available on this server.")
+
+    # Convert transparency/alpha channels to solid white background
+    if pil_img.mode in ("RGBA", "LA", "P"):
+        bg = Image.new("RGB", pil_img.size, (255, 255, 255))
+        if pil_img.mode == "P":
+            pil_img = pil_img.convert("RGBA")
+        bg.paste(pil_img, mask=pil_img.split()[-1] if pil_img.mode == "RGBA" else None)
+        pil_img = bg
+    elif pil_img.mode != "RGB":
+        pil_img = pil_img.convert("RGB")
 
     # Run RapidOCR inference
     results, _ = engine(pil_img)

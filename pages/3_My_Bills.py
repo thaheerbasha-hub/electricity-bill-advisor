@@ -96,7 +96,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
             file_bytes = uploaded_file.read()
             uploaded_file.seek(0)
             doc_source = uploaded_file.name
-            
+
             # Cache key to prevent re-running OCR repeatedly on every widget interaction
             cache_key = f"scan_{uploaded_file.name}_{len(file_bytes)}"
             if st.session_state.get("active_scan_key") == cache_key and "active_scan_data" in st.session_state:
@@ -160,18 +160,33 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
                 if id_info:
                     st.write("• **Consumer Info:** " + " · ".join(id_info))
 
-                st.write(f"• **Billing Month:** `{extracted_data.get('month', 'N/A')}`")
-                st.write(f"• **Units Consumed:** `{extracted_data.get('units', 0.0):.1f} kWh`")
-                st.write(f"• **Billing Days in Cycle:** `{extracted_data.get('days', 30)} days`")
-                st.write(f"• **Sanctioned Load:** `{extracted_data.get('load_kw', 2.0):.1f} kW`")
+                # Safe format guards for all fields
+                u_val = extracted_data.get("units")
+                u_text = f"`{u_val:.1f} kWh`" if u_val is not None else "`Not Detected` *(fill manually below)*"
+
+                kw_val = extracted_data.get("load_kw")
+                kw_text = f"`{kw_val:.1f} kW`" if kw_val is not None else "`2.0 kW`"
+
+                days_val = extracted_data.get("days") or 30
+                month_val = extracted_data.get("month") or "Not Detected"
+
+                fuel_val = extracted_data.get("fuel_rs")
+                fuel_text = f"`₹{fuel_val:.2f} / unit`" if fuel_val is not None else "`₹0.00 / unit`"
+
+                st.write(f"• **Billing Month:** `{month_val}`")
+                st.write(f"• **Units Consumed:** {u_text}")
+                st.write(f"• **Billing Days in Cycle:** `{days_val} days`")
+                st.write(f"• **Sanctioned Load:** {kw_text}")
 
                 free_u = extracted_data.get("free_units")
                 st.write(f"• **Gruha Jyothi Subsidy:** `{str(free_u) + ' Free Units' if free_u is not None else 'Not Subsidized / ₹0 Subsidy'}`")
-                st.write(f"• **Fuel Surcharge (F.A.C.):** `₹{extracted_data.get('fuel_rs', 0.00):.2f} / unit`")
+                st.write(f"• **Fuel Surcharge (F.A.C.):** {fuel_text}")
                 st.write(f"• **Reading Type:** `{'Estimated (Door Lock) ⚠️' if extracted_data.get('estimated') else 'Actual Reading ✅'}`")
 
-                if extracted_data.get("bill_amount"):
-                    st.write(f"• **Current Bill Amount:** `₹{extracted_data['bill_amount']:,.2f}`" + (f" (Net Due: `₹{extracted_data['net_amount']:,.2f}`)" if extracted_data.get("net_amount") else ""))
+                if extracted_data.get("bill_amount") is not None:
+                    b_amt = extracted_data['bill_amount']
+                    n_amt = extracted_data.get('net_amount')
+                    st.write(f"• **Current Bill Amount:** `₹{b_amt:,.2f}`" + (f" (Net Due: `₹{n_amt:,.2f}`)" if n_amt is not None else ""))
 
                 st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
                 if st.button("✨ " + ("Auto-Fill Form Below" if lang == "en" else "ಕೆಳಗಿನ ಫಾರ್ಮ್‌ಗೆ ತುಂಬಿರಿ"), type="primary", use_container_width=True):
@@ -188,14 +203,14 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
     st.markdown("### ✍️ " + ("Bill Form (Manual / Auto-Filled)" if lang == "en" else "ಬಿಲ್ ನಮೂದು ಫಾರ್ಮ್ (ಹಸ್ತಚಾಲಿತ / ಸ್ವಯಂ-ತುಂಬಿದ)"))
     st.caption("You can freely edit, verify, or type any value below before saving." if lang == "en" else "ಉಳಿಸುವ ಮೊದಲು ನೀವು ಕೆಳಗಿನ ಯಾವುದೇ ಮೌಲ್ಯವನ್ನು ತಿದ್ದುಪಡಿ ಮಾಡಬಹುದು ಅಥವಾ ಹೊಸದಾಗಿ ನಮೂದಿಸಬಹುದು.")
 
-    def_month = prefill.get("month", "") or "Nov 2026"
-    def_units = float(prefill.get("units", 170.0))
-    def_days = int(prefill.get("days", 30))
+    def_month = prefill.get("month") or "Nov 2026"
+    def_units = float(prefill["units"]) if prefill.get("units") is not None else 170.0
+    def_days = int(prefill["days"]) if prefill.get("days") is not None else 30
     def_est = bool(prefill.get("estimated", False))
-    def_kw = float(prefill.get("load_kw", 2.0))
+    def_kw = float(prefill["load_kw"]) if prefill.get("load_kw") is not None else 2.0
     def_gj = (prefill.get("free_units") is not None) if "free_units" in prefill else False
-    def_free = int(prefill.get("free_units", 150) or 150)
-    def_fuel = float(prefill.get("fuel_rs", 0.00))
+    def_free = int(prefill.get("free_units") or 150)
+    def_fuel = float(prefill["fuel_rs"]) if prefill.get("fuel_rs") is not None else 0.0
 
     k_prefix = f"pf_{st.session_state.get('prefill_counter', 0)}"
 
