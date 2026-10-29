@@ -5,7 +5,7 @@ Features:
   - Smart Bill Scanner: Drag-and-drop file upload (PNG, JPG, PDF) or copy-paste directly from clipboard (Ctrl+V)
   - Rapid AI OCR Engine: Automatically and accurately extracts exact Karnataka BESCOM bill parameters in seconds
   - Auto-fills Month, Units, Billing Days, Sanctioned Load, Fuel Surcharge, and Subsidy Status
-  - 100% Manual entry & editing support retained
+  - 100% Manual entry & editing support retained across all 8 bill parameters
   - Saved bills table with daily average calculations & bill deletion
   - Fully bilingual (English / Kannada)
 """
@@ -165,7 +165,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
                 u_text = f"`{u_val:.1f} kWh`" if u_val is not None else "`Not Detected` *(fill manually below)*"
 
                 kw_val = extracted_data.get("load_kw")
-                kw_text = f"`{kw_val:.1f} kW`" if kw_val is not None else "`2.0 kW`"
+                kw_text = f"`{kw_val:.1f} kW`" if (kw_val is not None and kw_val > 0) else "`10.0 kW`"
 
                 days_val = extracted_data.get("days") or 30
                 month_val = extracted_data.get("month") or "Not Detected"
@@ -190,7 +190,11 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
 
                 st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
                 if st.button("✨ " + ("Auto-Fill Form Below" if lang == "en" else "ಕೆಳಗಿನ ಫಾರ್ಮ್‌ಗೆ ತುಂಬಿರಿ"), type="primary", use_container_width=True):
-                    st.session_state["bill_prefill"] = extracted_data
+                    # Clean and sanitize prefill values before setting session_state
+                    sanitized_prefill = dict(extracted_data)
+                    if sanitized_prefill.get("load_kw") is None or float(sanitized_prefill.get("load_kw", 0)) < 0.5:
+                        sanitized_prefill["load_kw"] = 2.0
+                    st.session_state["bill_prefill"] = sanitized_prefill
                     st.session_state["prefill_counter"] = st.session_state.get("prefill_counter", 0) + 1
                     st.toast("✅ Scanned data applied to bill form below!", icon="⚡")
                     st.rerun()
@@ -201,28 +205,46 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
     prefill = st.session_state.get("bill_prefill", {})
 
     st.markdown("### ✍️ " + ("Bill Form (Manual / Auto-Filled)" if lang == "en" else "ಬಿಲ್ ನಮೂದು ಫಾರ್ಮ್ (ಹಸ್ತಚಾಲಿತ / ಸ್ವಯಂ-ತುಂಬಿದ)"))
-    st.caption("You can freely edit, verify, or type any value below before saving." if lang == "en" else "ಉಳಿಸುವ ಮೊದಲು ನೀವು ಕೆಳಗಿನ ಯಾವುದೇ ಮೌಲ್ಯವನ್ನು ತಿದ್ದುಪಡಿ ಮಾಡಬಹುದು ಅಥವಾ ಹೊಸದಾಗಿ ನಮೂದಿಸಬಹುದು.")
+    st.caption("You can freely edit, verify, or type any value below before saving. All 8 bill parameters are available below:" if lang == "en" else "ಉಳಿಸುವ ಮೊದಲು ನೀವು ಕೆಳಗಿನ ಯಾವುದೇ ಮೌಲ್ಯವನ್ನು ತಿದ್ದುಪಡಿ ಮಾಡಬಹುದು ಅಥವಾ ಹೊಸದಾಗಿ ನಮೂದಿಸಬಹುದು:")
 
-    def_month = prefill.get("month") or "Nov 2026"
-    def_units = float(prefill["units"]) if prefill.get("units") is not None else 170.0
-    def_days = int(prefill["days"]) if prefill.get("days") is not None else 30
+    # Safe bounded clamps to prevent StreamlitValueBelowMinError
+    def_month = str(prefill.get("month") or "Sep 2013")
+
+    raw_units = prefill.get("units")
+    def_units = max(0.0, min(50000.0, float(raw_units if raw_units is not None else 170.0)))
+
+    raw_days = prefill.get("days")
+    def_days = max(15, min(120, int(raw_days if raw_days is not None else 30)))
+
     def_est = bool(prefill.get("estimated", False))
-    def_kw = float(prefill["load_kw"]) if prefill.get("load_kw") is not None else 2.0
+
+    raw_kw = prefill.get("load_kw")
+    if raw_kw is not None and float(raw_kw) >= 0.5:
+        def_kw = max(0.5, min(100.0, float(raw_kw)))
+    else:
+        def_kw = 2.0
+
     def_gj = (prefill.get("free_units") is not None) if "free_units" in prefill else False
-    def_free = int(prefill.get("free_units") or 150)
-    def_fuel = float(prefill["fuel_rs"]) if prefill.get("fuel_rs") is not None else 0.0
+
+    raw_free = prefill.get("free_units")
+    def_free = max(0, min(200, int(raw_free if raw_free is not None else 150)))
+
+    raw_fuel = prefill.get("fuel_rs")
+    def_fuel = max(0.0, min(10.0, float(raw_fuel if raw_fuel is not None else 0.0)))
 
     k_prefix = f"pf_{st.session_state.get('prefill_counter', 0)}"
 
     with st.form("add_bill_form"):
         c1, c2 = st.columns(2)
         with c1:
+            # 1. Billing Month / Label
             month = st.text_input(
                 text.T("bill_month_label", lang),
                 value=def_month,
                 placeholder="e.g. Sep 2013 or Nov 2026",
                 key=f"{k_prefix}_month"
             )
+            # 2. Units Consumed (kWh)
             units = st.number_input(
                 text.T("bill_units_label", lang),
                 min_value=0.0,
@@ -231,6 +253,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
                 step=1.0,
                 key=f"{k_prefix}_units"
             )
+            # 3. Billing Days in Cycle
             days = st.number_input(
                 text.T("bill_days_label", lang),
                 min_value=15,
@@ -239,12 +262,14 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
                 step=1,
                 key=f"{k_prefix}_days"
             )
+            # 4. Estimated Reading Checkbox
             estimated = st.checkbox(
                 text.T("bill_est_label", lang),
                 value=def_est,
                 key=f"{k_prefix}_est"
             )
         with c2:
+            # 5. Sanctioned Load (kW) - Safe min_value=0.5 with guaranteed value >= 0.5
             load_kw = st.number_input(
                 text.T("bill_kw_label", lang),
                 min_value=0.5,
@@ -253,19 +278,25 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
                 step=0.5,
                 key=f"{k_prefix}_kw"
             )
+            # 6. Enrolled in Gruha Jyothi?
             in_gj = st.checkbox(
                 text.T("bill_gj_enrolled", lang),
                 value=def_gj,
                 key=f"{k_prefix}_gj"
             )
-            free_units = st.number_input(
+            # 7. Free Units Printed on Bill (always rendered, enabled only if enrolled)
+            free_units_val = st.number_input(
                 text.T("bill_free_label", lang),
                 min_value=0,
                 max_value=200,
                 value=def_free,
                 step=1,
+                disabled=not in_gj,
                 key=f"{k_prefix}_free"
-            ) if in_gj else None
+            )
+            free_units = free_units_val if in_gj else None
+
+            # 8. Fuel Surcharge / FPPCA (₹/unit)
             fuel_rs = st.number_input(
                 text.T("bill_fuel_label", lang),
                 min_value=0.0,
@@ -275,6 +306,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
                 key=f"{k_prefix}_fuel"
             )
 
+        # 9. Form Submission Button
         submitted = st.form_submit_button(text.T("bill_save_btn", lang), type="primary", use_container_width=True)
         if submitted:
             if not month.strip():
