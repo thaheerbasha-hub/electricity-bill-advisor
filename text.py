@@ -169,15 +169,44 @@ STRINGS = {
     "about_fixed_charge": {"en": "Fixed Charge", "kn": "ಸ್ಥಿರ ಶುಲ್ಕ (Fixed Charge)"},
     "about_tax": {"en": "State Electricity Duty", "kn": "ರಾಜ್ಯ ವಿದ್ಯುತ್ ಶುಲ್ಕ (ತೆರಿಗೆ)"},
     "about_gj_sub": {"en": "2 · How the Gruha Jyothi Scheme Works", "kn": "2 · ಗೃಹ ಜ್ಯೋತಿ ಯೋಜನೆ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?"},
-    "about_escoms_sub": {"en": "3 · Karnataka ESCOMs Overview", "kn": "3 · ಕರ್ನಾಟಕದ ವಿದ್ಯುತ್ ಸರಬರಾಜು ಕಂಪನಿಗಳು (ESCOMs)"}
+    "about_escoms_sub": {"en": "3 · Karnataka ESCOMs Overview", "kn": "3 · ಕರ್ನಾಟಕದ ವಿದ್ಯುತ್ ಸರಬರಾಜು ಕಂಪನಿಗಳು (ESCOMs)"},
+    # --- New Forecast & Check Keys ---
+    "forecast_cycle_days": {"en": "Days in billing cycle", "kn": ""},
+    "forecast_cycle_help": {"en": "BESCOM billing cycles typically range between 25 and 35 days", "kn": ""},
+    "forecast_rates_vs_you_title": {"en": "Rates vs You (estimate)", "kn": ""},
+    "forecast_rates_breakdown_more": {"en": "Projected bill is ~Rs {diff_rs} higher than last month: ~Rs {rate_diff_rs} is from tariff/fuel changes (not your fault), and ~Rs {usage_diff_rs} is from your household usage change (estimate).", "kn": ""},
+    "forecast_rates_breakdown_less": {"en": "Projected bill is ~Rs {diff_rs} lower than last month: ~Rs {rate_diff_rs} is from tariff/fuel changes (not your fault), and ~Rs {usage_diff_rs} is from your household usage change (estimate).", "kn": ""},
+    "forecast_rates_breakdown_same": {"en": "Projected bill is roughly the same as last month (~Rs {diff_rs} difference) (estimate).", "kn": ""},
+    "forecast_fuel_shock_callout": {"en": "A fuel price shock adds about Rs {extra_rs} to your next bill with the same usage. That part is not your fault.", "kn": ""},
+    "forecast_fuel_shock_help": {"en": "Simulated Fuel Surcharge / FPPCA in Rs/unit (try Rs 1.00 to see what an energy cost increase does to your bill even if you use the same power, e.g. a Strait of Hormuz crisis).", "kn": ""},
+
+    # --- New About Karnataka Keys ---
+    "about_data_metrics_title": {"en": "Real BESCOM Data Highlights", "kn": ""},
+    "about_metric_consumers": {"en": "BESCOM Consumers (2010 to 2023)", "kn": ""},
+    "about_metric_ev": {"en": "Public LT EV Stations", "kn": ""},
+    "about_metric_share": {"en": "Bengaluru Domestic Share", "kn": ""},
+    "about_chart_title": {"en": "BESCOM Consumers Growth (Lakhs) : 2010-11 to 2022-23", "kn": ""},
+    "about_source_note": {"en": "Source: BESCOM public datasets (data/bescom/)", "kn": ""},
+    "about_data_missing": {"en": "Data file '{filename}' was not found in data/bescom/. Please place the file to see real statistics.", "kn": ""},
+    "about_future_title": {"en": "Where This Is Going", "kn": ""},
+    "about_future_p1": {"en": "Read the bill directly from a photo (coming later)", "kn": ""},
+    "about_future_p2": {"en": "Compare to similar homes in your neighborhood (coming later)", "kn": ""},
+    "about_future_p3": {"en": "Owner payback calculator and rooftop solar installation advice (coming later)", "kn": ""},
 }
 
 
-def T(key: str, lang: str = "en") -> str:
+def T(key: str, lang: str = "en", **kwargs) -> str:
     """Team-standard function for retrieving localized text."""
     if not lang or lang not in ("en", "kn"):
         lang = "en"
     entry = STRINGS.get(key)
     if not entry:
-        return key
-    return entry.get(lang, entry.get("en", key))
+        val = key
+    else:
+        val = entry.get(lang) or entry.get("en", key)
+    if kwargs:
+        try:
+            return val.format(**kwargs)
+        except Exception:
+            return val
+    return val
