@@ -49,22 +49,12 @@ def apply_custom_css():
     """Inject the active theme CSS and localStorage persistence script using st.html."""
     active_theme = get_current_theme()
 
-    # Browser JavaScript to keep localStorage in sync and restore on cold visit
+    # Synchronize theme to localStorage without any page reloads or redirects
     storage_sync_js = f"""
     <script>
     (function() {{
         try {{
-            const active = "{active_theme}";
-            localStorage.setItem("pbc_active_theme", active);
-
-            // Cold start check: if URL has no ?theme=, redirect to saved preference
-            const url = new URL(window.location.href);
-            const qp = url.searchParams.get("theme");
-            const stored = localStorage.getItem("pbc_active_theme");
-            if (stored && !qp && ["classic", "neon_glass", "soft_clay", "cozy_wool", "smooth_tactile"].includes(stored)) {{
-                url.searchParams.set("theme", stored);
-                window.location.replace(url.href);
-            }}
+            localStorage.setItem("pbc_active_theme", "{active_theme}");
         }} catch(e) {{}}
     }})();
     </script>
