@@ -16,15 +16,11 @@ import ui_common
 import text
 
 from engine import (
-    RATE,
-    FIXED_PER_KW,
-    TAX,
     GJ_CAP,
     AWAY_SHARE,
     to_pay,
     normal_use,
     fuel_shock,
-    rates_vs_usage,
 )
 
 ui_common.apply_custom_css()
@@ -81,8 +77,8 @@ st.subheader(text.T("forecast_fuel_sub", lang))
 fuel_next = st.number_input(
     text.T("forecast_fuel_label", lang),
     min_value=0.0,
-    max_value=3.0,
-    value=float(last_fuel_rate),
+    max_value=10.0,
+    value=min(float(last_fuel_rate), 10.0),
     step=0.05,
     help=text.T("forecast_fuel_shock_help", lang),
 )
@@ -146,7 +142,7 @@ with st.container(border=True):
         st.warning(text.T("forecast_fuel_shock_callout", lang, extra_rs=fuel_extra_rs))
 
     # Gruha Jyothi risk warning
-    if latest.get("free_units") and hi_u > GJ_CAP:
+    if free is not None and hi_u > GJ_CAP:
         st.error(text.T("forecast_risk_high", lang))
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -161,8 +157,8 @@ with st.container(border=True):
         cur_meter = st.number_input(
             text.T("forecast_units_used", lang),
             min_value=0,
-            max_value=2000,
-            value=int(normal_daily * 15),
+            max_value=5000,
+            value=min(int(normal_daily * 15), 5000),
         )
     with col_b:
         cur_days = st.number_input(
@@ -180,12 +176,16 @@ with st.container(border=True):
             help=text.T("forecast_cycle_help", lang),
         )
 
-    projected_month = (cur_meter / max(cur_days, 1)) * cycle_days
+    days_elapsed = min(cur_days, cycle_days)
+    projected_month = (cur_meter / max(days_elapsed, 1)) * cycle_days
     st.markdown(
         f"**{text.T('forecast_paced_usage', lang)}** `{projected_month:.0f} units (estimate)` (for {cycle_days}-day cycle)"
     )
 
-    if latest.get("free_units") and projected_month > GJ_CAP:
-        st.error(text.T("forecast_lose_gj", lang))
-    else:
-        st.success(text.T("forecast_on_track", lang))
+    if free is not None:
+        if projected_month > GJ_CAP:
+            st.error(text.T("forecast_lose_gj", lang))
+        elif projected_month > free:
+            st.warning(text.T("forecast_pay_extra", lang, free=round(free), units=round(projected_month - free)))
+        else:
+            st.success(text.T("forecast_on_track", lang))

@@ -147,6 +147,10 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
         charges_val = sorted_units[0]
 
     # Resolve Units Priority
+    # Two nearby 4-6 digit numbers may not be meter readings (e.g. rupee amounts).
+    # If the printed Consumption row disagrees, trust it when the charges table confirms it.
+    if diff_val is not None and cons_val is not None and diff_val != cons_val and cons_val == charges_val:
+        diff_val = None
     if diff_val is not None:
         data["units"] = diff_val
     elif cons_val is not None:

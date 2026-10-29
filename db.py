@@ -18,6 +18,7 @@ import hashlib
 import math
 import os
 import sqlite3
+from datetime import datetime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "power_coach.db")
 
@@ -249,6 +250,35 @@ def delete_bill(bill_id: int, user_id: int = None):
         conn.close()
 
 
+_MONTH_FORMATS = ("%Y-%m", "%Y-%m-%d", "%b %Y", "%B %Y", "%b-%Y", "%b %y", "%m/%Y", "%m-%Y")
+
+
+def _parse_month(label):
+    """'Sep 2026' / '2026-09' -> (2026, 9); None if it cannot be read."""
+    text = " ".join(str(label or "").replace(",", " ").split())
+    for fmt in _MONTH_FORMATS:
+        try:
+            dt = datetime.strptime(text, fmt)
+            return (dt.year, dt.month)
+        except ValueError:
+            continue
+    return None
+
+
+def _sort_by_month(rows):
+    """Oldest bill first by real calendar month (text sort puts 'Nov 2025' after 'Aug 2026').
+    Rows come in id order; a month that cannot be read keeps the slot of the bill entered before it."""
+    last = (0, 0)
+    keyed = []
+    for i, r in enumerate(rows):
+        ym = _parse_month(r.get("month"))
+        if ym:
+            last = ym
+        keyed.append((ym or last, i, r))
+    keyed.sort(key=lambda t: (t[0], t[1]))
+    return [r for _, _, r in keyed]
+
+
 def get_bills(user_id: int):
     conn = get_conn()
     try:
@@ -257,7 +287,7 @@ def get_bills(user_id: int):
         SELECT id, month, units, days, estimated, fuel_per_unit, free_units, load_kw
         FROM bills
         WHERE user_id = ?
-        ORDER BY month ASC, id ASC
+        ORDER BY id ASC
         """, (user_id,))
         rows = []
         for r in cur.fetchall():
@@ -270,7 +300,7 @@ def get_bills(user_id: int):
             d["free_units"] = float(d["free_units"]) if d["free_units"] is not None else None
             d["load_kw"] = float(d["load_kw"])
             rows.append(d)
-        return rows
+        return _sort_by_month(rows)
     finally:
         conn.close()
 

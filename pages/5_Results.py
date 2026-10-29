@@ -10,7 +10,6 @@ Features:
   - Safe against 0 bills or unauthenticated access.
 """
 
-from typing import Any, Dict, List
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -20,7 +19,7 @@ import text
 import questions
 
 # Direct import from engine (no TEMP fallback — engine is stable)
-from engine import explain, RATE, TAX, GJ_CAP, full_bill, to_pay, normal_use
+from engine import explain, to_pay
 
 # Ensure user dict compatibility for ui_common
 if isinstance(st.session_state.get("user"), dict):
@@ -156,7 +155,7 @@ with st.container(border=True):
     else:
         # RUPEES FIRST Headline
         if abs(total_rupees) < 20.0:
-            st.markdown(f"### Your bill is about the same as last month. <span style='font-size:0.55em;color:#6b7280;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;'>(estimate)</span>", unsafe_allow_html=True)
+            st.markdown("### Your bill is about the same as last month. <span style='font-size:0.55em;color:#6b7280;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;'>(estimate)</span>", unsafe_allow_html=True)
         elif total_rupees > 0:
             st.markdown(f"### Bill went **UP by {ui_common.rupees(total_rupees)}** <span style='font-size:0.55em;color:#6b7280;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;'>(estimate)</span>", unsafe_allow_html=True)
         else:

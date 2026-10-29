@@ -18,24 +18,19 @@ Functions implemented here:
 - tips(answers, bills) -> ranked list of (message, units_saved_range, rupees_range, cost, who)
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 # -----------------------------------------------------------------------------
 # Shared Imports (engine is stable — fail loudly if missing)
 # -----------------------------------------------------------------------------
 from engine import (
     RATE,
-    FIXED_PER_KW,
     TAX,
     GJ_CAP,
     AWAY_SHARE,
-    full_bill,
-    to_pay,
     normal_use,
-    explain,
 )
 
-from text import T
 
 
 # -----------------------------------------------------------------------------

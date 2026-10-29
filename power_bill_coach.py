@@ -237,7 +237,7 @@ def waste_checks(prev, cur, normal, reasons, free_units):
                         f"{per_day:.1f} units a day. Something stays ON when nobody is home: water motor, geyser, "
                         "an old fridge, inverter or a light. Switch off at the mains next time you travel."))
         else:
-            out.append(("ok", f"Vacation test passed: while you were away the home used very little. Good."))
+            out.append(("ok", "Vacation test passed: while you were away the home used very little. Good."))
     unk = [r for r in reasons if r["key"] == "unknown"]
     if unk:
         out.append(("warn", f"{unk[0]['units']:.0f} units have no reason. That is about "
