@@ -48,7 +48,7 @@ with c2:
     with tab_login:
         st.subheader("Log in to your account")
         phone_in = st.text_input("Mobile Number (10 digits)", max_chars=10, placeholder="9876543210", key="login_phone")
-        pin_in = st.text_input("4-digit Security PIN", type="password", max_chars=4, placeholder="••••", key="login_pin")
+        pin_in = st.text_input("4-digit Security PIN", type="password", placeholder="Enter your security code", key="login_pin")
         
         # Language preference
         lang_sel = st.selectbox("Preferred Language / ಭಾಷೆ", ["English", "ಕನ್ನಡ"], index=0 if lang == "en" else 1, key="login_lang_picker")
@@ -57,8 +57,8 @@ with c2:
         if st.button("Log In", type="primary", use_container_width=True, key="btn_login"):
             if not phone_in or len(phone_in) < 10:
                 st.error("Please enter a valid 10-digit mobile number.")
-            elif not pin_in or len(pin_in) != 4:
-                st.error("Please enter your 4-digit PIN.")
+            elif not pin_in:
+                st.error("Please enter your 4-digit Security PIN.")
             else:
                 user = db.check_login(phone_in, pin_in)
                 if user:
@@ -66,7 +66,7 @@ with c2:
                     st.success(f"Welcome back, {user['name']}!")
                     st.rerun()
                 else:
-                    st.error("Incorrect mobile number or PIN. Please try again or create an account.")
+                    st.error("Incorrect mobile number or security PIN. Please try again or create an account.")
 
     # --- TAB 2: SIGN UP ---
     with tab_signup:
@@ -74,18 +74,18 @@ with c2:
         st.caption("Your details are stored strictly in a local database. No BESCOM passwords needed.")
         new_name = st.text_input("Full Name / Household Name", placeholder="e.g. Ramesh Kumar", key="signup_name")
         new_phone = st.text_input("Mobile Number (10 digits)", max_chars=10, placeholder="9876543210", key="signup_phone")
-        new_pin = st.text_input("Choose a 4-digit PIN", type="password", max_chars=4, placeholder="••••", key="signup_pin")
-        confirm_pin = st.text_input("Confirm 4-digit PIN", type="password", max_chars=4, placeholder="••••", key="signup_confirm_pin")
+        new_pin = st.text_input("4-digit Security PIN", type="password", placeholder="Enter any code or mix of characters", key="signup_pin")
+        confirm_pin = st.text_input("Confirm 4-digit Security PIN", type="password", placeholder="Re-enter security PIN", key="signup_confirm_pin")
 
         if st.button("Create Account", type="primary", use_container_width=True, key="btn_signup"):
             if not new_name.strip():
                 st.error("Please enter your name.")
             elif len(new_phone.strip()) < 10 or not new_phone.strip().isdigit():
                 st.error("Please enter a valid 10-digit mobile number.")
-            elif len(new_pin) != 4 or not new_pin.isdigit():
-                st.error("PIN must be exactly 4 digits.")
+            elif not new_pin:
+                st.error("Please enter your 4-digit Security PIN.")
             elif new_pin != confirm_pin:
-                st.error("The PINs do not match. Please re-enter.")
+                st.error("The security PINs do not match. Please re-enter.")
             else:
                 success = db.add_user(new_name, new_phone, new_pin)
                 if success:

@@ -98,7 +98,7 @@ def add_user(name: str, phone: str, pin: str) -> bool:
     phone = phone.strip()
     name = name.strip()
     pin = pin.strip()
-    if len(phone) < 10 or len(pin) != 4:
+    if len(phone) < 10 or not pin:
         return False
     try:
         conn = get_conn()
