@@ -21,149 +21,21 @@ Functions implemented here:
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # -----------------------------------------------------------------------------
-# Shared Imports (with TEMP fallback until engine.py / text.py are ready)
+# Shared Imports (engine is stable — fail loudly if missing)
 # -----------------------------------------------------------------------------
-try:
-    from engine import (
-        RATE,
-        FIXED_PER_KW,
-        TAX,
-        GJ_CAP,
-        AWAY_SHARE,
-        full_bill,
-        to_pay,
-        normal_use,
-        explain,
-    )
-except ImportError:
-    # TEMP until engine.py is ready
-    RATE = 5.80          # Rs per unit, BESCOM domestic flat rate
-    FIXED_PER_KW = 150   # Rs per kW per month
-    TAX = 0.09           # 9% electricity tax
-    GJ_CAP = 200         # Gruha Jyothi ceiling (units)
-    AWAY_SHARE = 0.30    # Unoccupied home standby share of a normal day (30%)
+from engine import (
+    RATE,
+    FIXED_PER_KW,
+    TAX,
+    GJ_CAP,
+    AWAY_SHARE,
+    full_bill,
+    to_pay,
+    normal_use,
+    explain,
+)
 
-    def full_bill(units: float, days: int, kw: float, fuel: float) -> float:
-        energy = units * RATE
-        return energy + (kw * FIXED_PER_KW * days / 30.0) + (units * fuel) + (energy * TAX)
-
-    def to_pay(units: float, days: int, kw: float, fuel: float, free_units: Optional[float]) -> float:
-        full = full_bill(units, days, kw, fuel)
-        if free_units is None or units > GJ_CAP:
-            return full
-        if units <= free_units:
-            return 0.0
-        extra = units - free_units
-        return extra * (RATE * (1 + TAX) + fuel)
-
-    def normal_use(bills: List[Dict[str, Any]]) -> float:
-        if not bills:
-            return 5.0
-        recent = bills[-6:] if len(bills) >= 6 else (bills[-3:] if len(bills) >= 3 else bills)
-        rates = []
-        for b in recent:
-            u = float(b.get("units", 0.0))
-            d = max(int(b.get("days", 30)), 1)
-            a = max(int(b.get("away", 0)), 0)
-            eff = (d - a) + AWAY_SHARE * a
-            rates.append(u / max(eff, 1.0))
-        return sum(rates) / max(len(rates), 1)
-
-    def explain(bills: List[Dict[str, Any]], answers: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], float, float]:
-        if not bills or len(bills) < 2:
-            return [], 0.0, 5.0
-
-        prev, cur = bills[-2], bills[-1]
-        up = float(prev.get("units", 0.0))
-        dp = int(prev.get("days", 30))
-        uc = float(cur.get("units", 0.0))
-        dc = int(cur.get("days", 30))
-        pa = int(prev.get("away", 0))
-        ca = int(answers.get("vacation_days", cur.get("away", 0)))
-        pf = float(prev.get("fuel_per_unit", prev.get("fuel", 0.0)))
-        cf = float(cur.get("fuel_per_unit", cur.get("fuel", 0.0)))
-        pe = bool(prev.get("estimated", False))
-        kw = float(cur.get("load_kw", cur.get("kw", 2.0)))
-        free = cur.get("free_units", cur.get("free"))
-
-        eff_prev = (dp - pa) + AWAY_SHARE * pa
-        norm = up / max(eff_prev, 0.1) if eff_prev else up / max(dp, 1)
-        if pe:
-            norm = (up + uc) / max(dp + dc, 1)
-
-        u_days = up * dc / max(dp, 1)
-        eff_cur = (dc - ca) + AWAY_SHARE * ca
-        u_vac = norm * eff_cur
-
-        steps = [("days", u_days - up, "not your usage", f"Billing cycle had {abs(dc - dp)} {'more' if dc > dp else 'fewer'} day(s).")]
-        if pe:
-            u_vac = uc
-            steps.append(("catchup", u_vac - u_days, "not your usage", "Last bill was an ESTIMATE (meter not read). This bill catches up real units."))
-        elif ca != pa:
-            steps.append(("vacation", u_vac - u_days, "your usage", f"Vacation days changed ({ca} vs {pa} days)."))
-        else:
-            u_vac = u_days
-
-        extra = uc - u_vac
-        home_days = max(dc - ca, 0)
-        weights = {}
-        if answers.get("guests_days", 0) > 0 and answers.get("guests_people", 0) > 0:
-            weights["guests"] = 1.2 * answers["guests_people"] * min(answers["guests_days"], home_days)
-        if answers.get("hot_ac"):
-            weights["heat_ac"] = 3.0 * home_days * 0.5
-        if answers.get("geyser"):
-            weights["geyser"] = 1.0 * home_days * 0.5
-        if answers.get("home_more"):
-            weights["home_more"] = 1.5 * home_days * 0.6
-        if answers.get("pump"):
-            weights["pump"] = 0.4 * home_days
-        for item in answers.get("new_items", []):
-            weights[f"new_{item}"] = 1.5 * home_days * 0.5
-
-        if extra > 0:
-            exp_sum = sum(weights.values())
-            if exp_sum > 0:
-                share = min(1.0, extra / exp_sum)
-                for k, w in weights.items():
-                    label = k.replace("new_", "New ").replace("_", " ").capitalize()
-                    steps.append((k, w * share, "your usage", f"{label} added about {w * share:.0f} units."))
-                left = extra - exp_sum * share
-                if left > 5.0:
-                    steps.append(("unknown", left, "your usage", f"About {left:.0f} units not explained by your answers."))
-            else:
-                steps.append(("unknown", extra, "your usage", f"About {extra:.0f} units not explained by your answers."))
-        elif extra < 0:
-            steps.append(("less", extra, "your usage", f"Used about {abs(extra):.0f} units less than baseline."))
-
-        reasons = []
-        eff_rate = RATE * (1 + TAX)
-        for k, du, tag, txt in steps:
-            rs = du * eff_rate
-            if abs(rs) >= 1.0 or abs(du) >= 1.0:
-                reasons.append({"key": k, "units": du, "rupees": rs, "text": txt, "tag": tag})
-
-        fuel_r = uc * (cf - pf)
-        if abs(fuel_r) >= 1.0:
-            reasons.append({"key": "fuel", "units": 0.0, "rupees": fuel_r, "text": "Fuel surcharge (FPPCA) changed. This is a coal/gas cost adjustment, not your usage.", "tag": "not your usage"})
-
-        pay_cur = to_pay(uc, dc, kw, cf, free)
-        pay_prev = to_pay(up, dp, kw, pf, free)
-        tot = pay_cur - pay_prev
-
-        gj_r = (pay_cur - full_bill(uc, dc, kw, cf)) - (pay_prev - full_bill(up, dp, kw, pf))
-        if abs(gj_r) >= 1.0:
-            gj_txt = "Gruha Jyothi stopped (crossed 200 units). Full bill payable." if uc > GJ_CAP else "Gruha Jyothi scheme rule adjustment."
-            reasons.append({"key": "gj", "units": 0.0, "rupees": gj_r, "text": gj_txt, "tag": "scheme rule"})
-
-        reasons.sort(key=lambda r: -abs(r["rupees"]))
-        return reasons, tot, norm
-
-try:
-    from text import T
-except ImportError:
-    # TEMP until text.py is ready
-    def T(key: str, lang: str = "en") -> str:
-        return key
+from text import T
 
 
 # -----------------------------------------------------------------------------
