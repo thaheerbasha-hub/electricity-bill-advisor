@@ -1,17 +1,16 @@
 """
 ui_common.py · Shared UI styling, layout, and sidebar across all pages
-Guarantees high contrast, professional typography, and full visibility in all themes.
+Guarantees high contrast, professional typography, and full English / Kannada support.
 """
 
 import streamlit as st
+import text
 
 
 def apply_custom_css():
     st.markdown("""
     <style>
-    /* =========================================================
-       1. GLOBAL THEME & VISIBILITY OVERRIDES (STRICT CONTRAST)
-       ========================================================= */
+    /* Global Theme & Strict Contrast */
     .stApp {
         background-color: #f8fafc !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
@@ -106,10 +105,6 @@ def apply_custom_css():
         border-radius: 8px !important;
         font-weight: 600 !important;
     }
-    .stButton>button[kind="secondary"]:hover {
-        background-color: #f1f5f9 !important;
-        border-color: #94a3b8 !important;
-    }
     
     /* Metrics display */
     [data-testid="stMetricValue"] {
@@ -121,9 +116,7 @@ def apply_custom_css():
         font-weight: 600 !important;
     }
     
-    /* =========================================================
-       2. DARK SIDEBAR STYLING
-       ========================================================= */
+    /* Sidebar styling */
     section[data-testid="stSidebar"] {
         background-color: #0f172a !important;
     }
@@ -143,18 +136,32 @@ def apply_custom_css():
         color: #f8fafc !important;
         border: 1px solid #334155 !important;
     }
-    section[data-testid="stSidebar"] button:hover {
-        background-color: #334155 !important;
-    }
     </style>
     """, unsafe_allow_html=True)
 
 
 def render_sidebar():
     """Consistent sidebar across every page: user status, language, logout, helpline"""
+    current_lang = st.session_state.get("lang", "en")
+
     with st.sidebar:
-        st.markdown("<h2 style='color:#f8fafc; margin-bottom:2px;'>⚡ Power Bill Coach</h2>", unsafe_allow_html=True)
-        st.markdown("<div style='color:#94a3b8; font-size:0.85em; margin-bottom:14px;'>Karnataka · BESCOM Domestic Advisor</div>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='color:#f8fafc; margin-bottom:2px;'>{text.T('app_title', current_lang)}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#94a3b8; font-size:0.85em; margin-bottom:14px;'>{text.T('app_subtitle', current_lang)}</div>", unsafe_allow_html=True)
+        st.divider()
+
+        # Language switcher right at top of sidebar
+        lang_choice = st.radio(
+            text.T("sidebar_lang_label", current_lang),
+            options=["English", "ಕನ್ನಡ"],
+            index=0 if current_lang == "en" else 1,
+            horizontal=True,
+            key="sidebar_lang_selector"
+        )
+        new_lang = "en" if lang_choice == "English" else "kn"
+        if new_lang != current_lang:
+            st.session_state["lang"] = new_lang
+            st.rerun()
+
         st.divider()
 
         user = st.session_state.get("user")
@@ -162,40 +169,27 @@ def render_sidebar():
             # User profile card
             st.markdown(f"""
             <div style="background:#1e293b; border:1px solid #334155; padding:12px; border-radius:10px; margin-bottom:14px;">
-                <div style="font-size:0.75em; color:#94a3b8; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Logged In As</div>
+                <div style="font-size:0.75em; color:#94a3b8; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">{text.T('sidebar_logged_in', current_lang)}</div>
                 <div style="font-size:1.05em; font-weight:700; color:#f8fafc;">👤 {user['name']}</div>
                 <div style="font-size:0.85em; color:#cbd5e1;">📞 {user['phone']}</div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Language switcher
-            current_lang = st.session_state.get("lang", "en")
-            lang_choice = st.radio(
-                "Language / ಭಾಷೆ",
-                options=["English", "ಕನ್ನಡ"],
-                index=0 if current_lang == "en" else 1,
-                horizontal=True,
-                key="sidebar_lang_selector"
-            )
-            st.session_state["lang"] = "en" if lang_choice == "English" else "kn"
-
-            st.divider()
-
             # Logout button
-            if st.button("🚪 Log Out", use_container_width=True, type="secondary"):
+            if st.button(text.T("sidebar_logout", current_lang), use_container_width=True, type="secondary"):
                 st.session_state["user"] = None
                 st.rerun()
         else:
             # Not logged in
-            st.markdown("""
+            st.markdown(f"""
             <div style="background:#1e293b; border:1px solid #334155; padding:12px; border-radius:10px; color:#cbd5e1; font-size:0.9em; margin-bottom:14px;">
-                🔐 Please log in to view your household bills and insights.
+                {text.T('sidebar_please_login', current_lang)}
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<div style='color:#94a3b8; font-size:0.85em;'>☎️ <b>BESCOM Helpline:</b> 1912</div>", unsafe_allow_html=True)
-        st.markdown("<div style='color:#94a3b8; font-size:0.85em;'>📱 <b>BESCOM Mithra App</b> for official meter complaints</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#94a3b8; font-size:0.85em;'>{text.T('sidebar_helpline', current_lang)}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#94a3b8; font-size:0.85em;'>{text.T('sidebar_mithra', current_lang)}</div>", unsafe_allow_html=True)
 
 
 def rupees(x):

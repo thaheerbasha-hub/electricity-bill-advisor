@@ -6,11 +6,13 @@ Shows:
   - Gruha Jyothi Meter (units out of 200 cap)
   - Top Alert Banner (e.g. Subsidy at risk, jump alert)
   - Quick action buttons to the other pages
+  - Fully bilingual (English / Kannada)
 """
 
 import streamlit as st
 import db
 import ui_common
+import text
 
 ui_common.apply_custom_css()
 ui_common.render_sidebar()
@@ -42,24 +44,19 @@ def calc_to_pay(units, days, kw, fuel, free_units):
 bills = db.get_bills(user["id"])
 
 # Greeting Header
-if lang == "kn":
-    st.title(f"⚡ ನಮಸ್ಕಾರ, {user['name']}!")
-    st.caption("ನಿಮ್ಮ ಮನೆಯ ಬೆಸ್ಕಾಂ ವಿದ್ಯುತ್ ಖಾತೆಯ ಇತ್ತೀಚಿನ ವಿವರಗಳು")
-else:
-    st.title(f"⚡ Welcome back, {user['name']}!")
-    st.caption("Here is your household's latest BESCOM electricity overview")
+st.title(f"⚡ {text.T('welcome', lang)}, {user['name']}!")
+st.caption(text.T("home_subtitle", lang))
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 if not bills:
-    st.info("You don't have any bills recorded yet. Add your first bill to see insights and alerts!")
+    st.info("You don't have any bills recorded yet. Add your first bill to see insights and alerts!" if lang == "en" else "ಇನ್ನೂ ಯಾವುದೇ ಬಿಲ್ ದಾಖಲಾಗಿಲ್ಲ. ವಿವರಗಳನ್ನು ನೋಡಲು ನಿಮ್ಮ ಮೊದಲ ಬಿಲ್ ಸೇರಿಸಿ!")
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("➕ Add My First Bill", type="primary", use_container_width=True):
+        if st.button("➕ Add My First Bill" if lang == "en" else "➕ ಮೊದಲ ಬಿಲ್ ಸೇರಿಸಿ", type="primary", use_container_width=True):
             st.switch_page("pages/3_My_Bills.py")
     with c2:
-        if st.button("⚡ Load Demo Bills", use_container_width=True):
-            # Load sample bills for this user
+        if st.button("⚡ Load Demo Bills" if lang == "en" else "⚡ ಮಾದರಿ ಬಿಲ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಿ", use_container_width=True):
             sample_bills = [
                 ("May 2026", 152.0, 30, 0, 0.35, 150.0, 2.0),
                 ("Jun 2026", 160.0, 31, 0, 0.35, 150.0, 2.0),
@@ -86,23 +83,35 @@ daily_units = latest["units"] / max(latest["days"], 1)
 
 # --- 1. TOP ALERT BANNER ---
 if latest["units"] > GJ_CAP and latest.get("free_units"):
-    st.error(
-        f"🚨 **Gruha Jyothi Threshold Exceeded!** This month your usage hit **{latest['units']:.0f} units**, "
-        f"crossing the 200-unit government cap. As a result, you lose the ₹0 subsidy for this month and "
-        f"must pay the full bill of **{ui_common.rupees(latest_pay)}**."
-    )
+    if lang == "kn":
+        st.error(
+            f"🚨 **ಗೃಹ ಜ್ಯೋತಿ ಮಿತಿ ಮೀರಿದೆ!** ಈ ತಿಂಗಳು ನಿಮ್ಮ ಬಳಕೆ **{latest['units']:.0f} ಯೂನಿಟ್‌ಗಳು** ತಲುಪಿದ್ದು, "
+            f"ಸರ್ಕಾರದ 200 ಯೂನಿಟ್ ಮಿತಿಯನ್ನು ಮೀರಿದೆ. ಇದರಿಂದಾಗಿ ಈ ತಿಂಗಳು ₹0 ಸಬ್ಸಿಡಿ ರದ್ದಾಗಿದ್ದು, "
+            f"ನೀವು ಪೂರ್ಣ ಬಿಲ್ **{ui_common.rupees(latest_pay)}** ಪಾವತಿಸಬೇಕಾಗುತ್ತದೆ."
+        )
+    else:
+        st.error(
+            f"🚨 **Gruha Jyothi Threshold Exceeded!** This month your usage hit **{latest['units']:.0f} units**, "
+            f"crossing the 200-unit government cap. As a result, you lose the ₹0 subsidy for this month and "
+            f"must pay the full bill of **{ui_common.rupees(latest_pay)}**."
+        )
 elif latest["units"] > (GJ_CAP - 15) and latest.get("free_units"):
-    st.warning(
-        f"⚠️ **Caution: Close to 200 units cap!** You consumed **{latest['units']:.0f} units** this month. "
-        f"Just {GJ_CAP - latest['units']:.0f} more units would have triggered a full bill instead of free electricity!"
-    )
+    if lang == "kn":
+        st.warning(
+            f"⚠️ **ಎಚ್ಚರಿಕೆ: 200 ಯೂನಿಟ್ ಮಿತಿಯ ಸಮೀಪದಲ್ಲಿದ್ದೀರಿ!** ನೀವು **{latest['units']:.0f} ಯೂನಿಟ್‌ಗಳನ್ನು** ಬಳಸಿದ್ದೀರಿ. "
+            f"ಕೇವಲ {GJ_CAP - latest['units']:.0f} ಯೂನಿಟ್‌ಗಳು ಹೆಚ್ಚಾದರೆ ಉಚಿತ ವಿದ್ಯುತ್ ರದ್ದಾಗುತ್ತದೆ!"
+        )
+    else:
+        st.warning(
+            f"⚠️ **Caution: Close to 200 units cap!** You consumed **{latest['units']:.0f} units** this month. "
+            f"Just {GJ_CAP - latest['units']:.0f} more units would have triggered a full bill instead of free electricity!"
+        )
 elif delta_pay > 500:
     st.warning(
-        f"📈 **Bill Jump Detected:** Your bill rose by **{ui_common.rupees(delta_pay)}** compared to last month. "
-        f"Check the **What Changed** tab to see what caused this increase."
+        f"📈 **Bill Jump Detected / ಬಿಲ್ ಹೆಚ್ಚಳ:** Your bill rose by **{ui_common.rupees(delta_pay)}** compared to last month."
     )
 else:
-    st.success("✅ **Consumption in Normal Range:** Your usage is steady and under control this month.")
+    st.success("✅ **ಬಳಕೆ ಸಾಮಾನ್ಯ ಮಿತಿಯಲ್ಲಿದೆ / Consumption Normal:** Your usage is steady and under control this month.")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -110,92 +119,92 @@ st.markdown("<br>", unsafe_allow_html=True)
 m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.metric(
-        label="Latest Bill to Pay" if lang == "en" else "ಈ ತಿಂಗಳ ಬಿಲ್",
+        label=text.T("metric_latest_bill", lang),
         value=ui_common.rupees(latest_pay),
-        delta=f"{'+' if delta_pay > 0 else ''}{ui_common.rupees(delta_pay)} vs prev" if prev else None,
+        delta=f"{'+' if delta_pay > 0 else ''}{ui_common.rupees(delta_pay)}" if prev else None,
         delta_color="inverse"
     )
 with m2:
     st.metric(
-        label="Units Consumed" if lang == "en" else "ಬಳಸಿದ ಯೂನಿಟ್‌ಗಳು",
-        value=f"{latest['units']:.0f} units",
-        delta=f"{latest['units'] - prev['units']:+.0f} units" if prev else None,
+        label=text.T("metric_units", lang),
+        value=f"{latest['units']:.0f} u",
+        delta=f"{latest['units'] - prev['units']:+.0f} u" if prev else None,
         delta_color="inverse"
     )
 with m3:
     st.metric(
-        label="Daily Average" if lang == "en" else "ದೈನಂದಿನ ಸರಾಸರಿ",
-        value=f"{daily_units:.1f} u/day",
-        help="Calculated as total units divided by billing days"
+        label=text.T("metric_daily", lang),
+        value=f"{daily_units:.1f} u/d",
+        help="Units per day"
     )
 with m4:
-    gj_status = "Not Enrolled" if not latest.get("free_units") else (
-        "Lost (200+ units)" if latest["units"] > GJ_CAP else (
-            "₹0 (Full Free)" if latest["units"] <= (latest["free_units"] or 0) else "Partly Free"
-        )
-    )
+    if not latest.get("free_units"):
+        gj_status = text.T("gj_not_enrolled", lang)
+    elif latest["units"] > GJ_CAP:
+        gj_status = text.T("gj_lost", lang)
+    elif latest["units"] <= (latest["free_units"] or 0):
+        gj_status = text.T("gj_free", lang)
+    else:
+        gj_status = text.T("gj_partial", lang)
+
     st.metric(
-        label="Gruha Jyothi Scheme" if lang == "en" else "ಗೃಹ ಜ್ಯೋತಿ ಸ್ಥಿತಿ",
+        label=text.T("metric_gj_status", lang),
         value=gj_status
     )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- 3. GRUHA JYOTHI METER (Units out of 200 cap) ---
+# --- 3. GRUHA JYOTHI METER ---
 with st.container(border=True):
-    st.subheader("🎯 Gruha Jyothi 200-Unit Safety Meter")
-    st.caption("In Karnataka, keeping your monthly usage under 200 units keeps your subsidized rate active.")
+    st.subheader(text.T("meter_title", lang))
+    st.caption(text.T("meter_caption", lang))
     
     pct = min(latest["units"] / GJ_CAP, 1.0)
-    bar_color = "#10b981" if latest["units"] <= 175 else ("#f59e0b" if latest["units"] <= GJ_CAP else "#ef4444")
-    
     st.progress(pct)
     
     col_a, col_b = st.columns([2, 1])
     with col_a:
         st.markdown(
-            f"**Current: {latest['units']:.0f} / {GJ_CAP} Units** "
-            f"({(latest['units']/GJ_CAP)*100:.0f}% of cap)"
+            f"**{latest['units']:.0f} / {GJ_CAP} Units** ({(latest['units']/GJ_CAP)*100:.0f}%)"
         )
         if latest["units"] <= GJ_CAP:
-            st.markdown(f"🟢 **Buffer left:** `{GJ_CAP - latest['units']:.0f} units` before losing the ₹0 scheme.")
+            st.markdown(f"🟢 **{text.T('units_buffer', lang)}** `{GJ_CAP - latest['units']:.0f} units`")
         else:
-            st.markdown(f"🔴 **Over the line by:** `{latest['units'] - GJ_CAP:.0f} units` — scheme invalid this cycle.")
+            st.markdown(f"🔴 **{text.T('units_over', lang)}** `{latest['units'] - GJ_CAP:.0f} units`")
     with col_b:
-        st.caption(f"Billing period: **{latest['month']}** ({latest['days']} days)")
+        st.caption(f"**{latest['month']}** ({latest['days']} days)")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- 4. ACTION BUTTONS TO OTHER PAGES ---
-st.subheader("⚡ Quick Navigation")
-st.write("Explore your bill analytics, diagnose waste, and plan next month:")
+# --- 4. ACTION BUTTONS ---
+st.subheader(text.T("quick_nav", lang))
 
 c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     with st.container(border=True):
-        st.markdown("#### 📄 My Bills")
-        st.caption("View bill history, add new monthly bills, or manage records.")
-        if st.button("Open Bills →", key="btn_nav_bills", use_container_width=True):
+        st.markdown(f"#### {text.T('nav_bills', lang)}")
+        st.caption(text.T("nav_bills_desc", lang))
+        if st.button("Open →" if lang == "en" else "ತೆರೆಯಿರಿ →", key="btn_nav_bills", use_container_width=True):
             st.switch_page("pages/3_My_Bills.py")
 
 with c2:
     with st.container(border=True):
-        st.markdown("#### 🔍 What Changed")
-        st.caption("Answer simple questions about guests, vacations, heat, or motors.")
-        if st.button("Diagnose Jump →", key="btn_nav_changed", use_container_width=True):
+        st.markdown(f"#### {text.T('nav_changed', lang)}")
+        st.caption(text.T("nav_changed_desc", lang))
+        if st.button("Open →" if lang == "en" else "ತೆರೆಯಿರಿ →", key="btn_nav_changed", use_container_width=True):
             st.switch_page("pages/4_What_Changed.py")
 
 with c3:
     with st.container(border=True):
-        st.markdown("#### 📊 Results & Waste")
-        st.caption("See waterfall breakdown, vacation tests, and tailored saving tips.")
-        if st.button("View Insights →", key="btn_nav_results", use_container_width=True):
+        st.markdown(f"#### {text.T('nav_results', lang)}")
+        st.caption(text.T("nav_results_desc", lang))
+        if st.button("Open →" if lang == "en" else "ತೆರೆಯಿರಿ →", key="btn_nav_results", use_container_width=True):
             st.switch_page("pages/5_Results.py")
 
 with c4:
     with st.container(border=True):
-        st.markdown("#### 🔮 Next Forecast")
-        st.caption("Project next month's bill, simulate fuel shocks, and mid-month test.")
-        if st.button("See Forecast →", key="btn_nav_forecast", use_container_width=True):
+        st.markdown(f"#### {text.T('nav_forecast', lang)}")
+        st.caption(text.T("nav_forecast_desc", lang))
+        if st.button("Open →" if lang == "en" else "ತೆರೆಯಿರಿ →", key="btn_nav_forecast", use_container_width=True):
             st.switch_page("pages/6_Forecast.py")
