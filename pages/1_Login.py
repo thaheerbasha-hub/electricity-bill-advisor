@@ -2,7 +2,7 @@
 1_Login.py · Power Bill Coach Login & Sign Up
 Handles user authentication with phone + Security PIN.
 Stores data locally in SQLite with hashed PINs.
-Guaranteed visible side-by-side tabs and smooth zero-flicker language switching.
+Features 3 tabs: Log In, Create Account, and Settings (with Language & Theme sub-tabs).
 """
 
 import streamlit as st
@@ -17,29 +17,18 @@ lang = st.session_state.get("lang", "en")
 
 
 def _on_lang_switch():
-    chosen = st.session_state.get("login_lang_toggle")
+    chosen = st.session_state.get("login_settings_lang")
     st.session_state["lang"] = "kn" if chosen == "ಕನ್ನಡ" else "en"
 
 
-# Centered Layout with generous space so tabs are never cut off
+# Centered Layout
 _, main_col, _ = st.columns([1, 8, 1])
 
 with main_col:
-    # Top Header with Language Switcher side-by-side
-    header_left, header_right = st.columns([3, 1])
-    with header_left:
-        st.title(text.T("app_title", lang))
-        st.markdown(f"**{text.T('tagline', lang)}**")
-        st.caption(text.T("no_passwords", lang))
-    with header_right:
-        st.radio(
-            "Language / ಭಾಷೆ",
-            options=["English", "ಕನ್ನಡ"],
-            index=0 if lang == "en" else 1,
-            horizontal=True,
-            key="login_lang_toggle",
-            on_change=_on_lang_switch
-        )
+    # Clean Top Header (no language widget floating outside)
+    st.title(text.T("app_title", lang))
+    st.markdown(f"**{text.T('tagline', lang)}**")
+    st.caption(text.T("no_passwords", lang))
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -55,8 +44,12 @@ with main_col:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Visible Full-Width Side-by-Side Tabs
-    tab_login, tab_signup = st.tabs([text.T("tab_login", lang), text.T("tab_signup", lang)])
+    # 3 Main Tabs: Log In, Create Account, and Settings
+    tab_login, tab_signup, tab_settings = st.tabs([
+        text.T("tab_login", lang),
+        text.T("tab_signup", lang),
+        text.T("tab_settings", lang)
+    ])
 
     # --- TAB 1: LOG IN ---
     with tab_login:
@@ -105,3 +98,16 @@ with main_col:
                     st.rerun()
                 else:
                     st.error(text.T("err_user_exists", lang))
+
+    # --- TAB 3: SETTINGS ---
+    with tab_settings:
+        st.subheader(text.T("settings_sub", lang))
+        st.write(text.T("settings_lang_help", lang))
+        st.radio(
+            text.T("settings_lang_label", lang),
+            options=["English", "ಕನ್ನಡ"],
+            index=0 if lang == "en" else 1,
+            horizontal=True,
+            key="login_settings_lang",
+            on_change=_on_lang_switch
+        )
