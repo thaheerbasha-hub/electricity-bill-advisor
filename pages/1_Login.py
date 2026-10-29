@@ -2,7 +2,7 @@
 1_Login.py · Power Bill Coach Login & Sign Up
 Handles user authentication with phone + Security PIN.
 Stores data locally in SQLite with hashed PINs.
-Features 3 tabs: Log In, Create Account, and Settings (with language controls inside).
+Features 3 tabs: Log In, Create Account, and Settings (with Language & Theme sub-tabs).
 """
 
 import streamlit as st
@@ -44,7 +44,7 @@ with main_col:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 3 Tabs: Log In, Create Account, and Settings
+    # 3 Main Tabs: Log In, Create Account, and Settings
     tab_login, tab_signup, tab_settings = st.tabs([
         text.T("tab_login", lang),
         text.T("tab_signup", lang),
@@ -99,18 +99,36 @@ with main_col:
                 else:
                     st.error(text.T("err_user_exists", lang))
 
-    # --- TAB 3: SETTINGS ---
+    # --- TAB 3: SETTINGS (with Language and Theme sub-tabs) ---
     with tab_settings:
         st.subheader(text.T("settings_sub", lang))
-        st.write(text.T("settings_lang_help", lang))
-        st.radio(
-            text.T("settings_lang_label", lang),
-            options=["English", "ಕನ್ನಡ"],
-            index=0 if lang == "en" else 1,
-            horizontal=True,
-            key="login_settings_lang",
-            on_change=_on_lang_switch
-        )
-        st.divider()
-        st.markdown(f"**{text.T('settings_theme_sub', lang)}**")
-        st.caption(text.T("settings_theme_desc", lang))
+        
+        sub_tab_lang, sub_tab_theme = st.tabs([
+            text.T("settings_tab_lang", lang),
+            text.T("settings_tab_theme", lang)
+        ])
+
+        with sub_tab_lang:
+            st.write(text.T("settings_lang_help", lang))
+            st.radio(
+                text.T("settings_lang_label", lang),
+                options=["English", "ಕನ್ನಡ"],
+                index=0 if lang == "en" else 1,
+                horizontal=True,
+                key="login_settings_lang",
+                on_change=_on_lang_switch
+            )
+
+        with sub_tab_theme:
+            st.subheader(text.T("theme_title", lang))
+            st.write(text.T("theme_desc", lang))
+            st.selectbox(
+                text.T("theme_title", lang),
+                options=[
+                    text.T("theme_default", lang),
+                    "Custom Theme 1 (Preview)",
+                    "Custom Theme 2 (Preview)"
+                ],
+                key="login_theme_selector"
+            )
+            st.info(text.T("theme_coming_soon", lang))

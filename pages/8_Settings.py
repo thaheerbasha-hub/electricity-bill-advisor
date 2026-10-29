@@ -1,6 +1,6 @@
 """
 8_Settings.py · Settings & Preferences Page
-Allows logged in users to switch languages and review preferences.
+Allows logged in users to customize Language, Theme, and Account info.
 """
 
 import streamlit as st
@@ -24,11 +24,18 @@ def _on_settings_lang_change():
 
 
 st.title(text.T("settings_sub", lang))
-st.caption("Customize your display language and account preferences.")
+st.caption("Customize your display language, theme preferences, and account profile.")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-with st.container(border=True):
+# 3 Sub-tabs inside Settings: Language, Theme, Account
+sub_lang, sub_theme, sub_account = st.tabs([
+    text.T("settings_tab_lang", lang),
+    text.T("settings_tab_theme", lang),
+    text.T("settings_tab_account", lang)
+])
+
+with sub_lang:
     st.subheader(text.T("settings_lang_label", lang))
     st.write(text.T("settings_lang_help", lang))
     st.radio(
@@ -40,16 +47,22 @@ with st.container(border=True):
         on_change=_on_settings_lang_change
     )
 
-st.markdown("<br>", unsafe_allow_html=True)
+with sub_theme:
+    st.subheader(text.T("theme_title", lang))
+    st.write(text.T("theme_desc", lang))
+    st.selectbox(
+        text.T("theme_title", lang),
+        options=[
+            text.T("theme_default", lang),
+            "Custom Theme 1 (Preview)",
+            "Custom Theme 2 (Preview)"
+        ],
+        key="main_theme_selector"
+    )
+    st.info(text.T("theme_coming_soon", lang))
 
-with st.container(border=True):
+with sub_account:
     st.subheader(text.T("settings_account_sub", lang))
     c1, c2 = st.columns(2)
     c1.text_input("Name", value=user["name"], disabled=True)
     c2.text_input("Mobile Number", value=user["phone"], disabled=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-with st.container(border=True):
-    st.subheader(text.T("settings_theme_sub", lang))
-    st.caption(text.T("settings_theme_desc", lang))

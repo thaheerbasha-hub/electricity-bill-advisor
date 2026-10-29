@@ -31,18 +31,25 @@ STRINGS = {
     "sidebar_helpline": {"en": "☎️ BESCOM Helpline: 1912", "kn": "☎️ ಬೆಸ್ಕಾಂ ಸಹಾಯವಾಣಿ: 1912"},
     "sidebar_mithra": {"en": "📱 BESCOM Mithra App for official meter complaints", "kn": "📱 ಅಧಿಕೃತ ಮೀಟರ್ ದೂರುಗಳಿಗೆ ಬೆಸ್ಕಾಂ ಮಿತ್ರ ಆ್ಯಪ್"},
 
-    # --- Tabs ---
+    # --- Main Tabs ---
     "tab_login": {"en": "🔑 Log In", "kn": "🔑 ಲಾಗ್ ಇನ್"},
     "tab_signup": {"en": "📝 Create Account", "kn": "📝 ಹೊಸ ಖಾತೆ ರಚಿಸಿ"},
     "tab_settings": {"en": "⚙️ Settings", "kn": "⚙️ ಸೆಟ್ಟಿಂಗ್ಸ್"},
 
-    # --- Settings Tab & Page ---
+    # --- Sub-tabs inside Settings ---
+    "settings_tab_lang": {"en": "🌐 Language", "kn": "🌐 ಭಾಷೆ"},
+    "settings_tab_theme": {"en": "🎨 Theme", "kn": "🎨 ಥೀಮ್"},
+    "settings_tab_account": {"en": "👤 Account", "kn": "👤 ಖಾತೆ"},
+
+    # --- Settings & Theme Content ---
     "settings_sub": {"en": "Application Settings & Preferences", "kn": "ಅಪ್ಲಿಕೇಶನ್ ಸೆಟ್ಟಿಂಗ್ಸ್ ಮತ್ತು ಆದ್ಯತೆಗಳು"},
     "settings_lang_label": {"en": "Preferred Language / ಭಾಷೆ", "kn": "ಆದ್ಯತೆಯ ಭಾಷೆ / Language"},
     "settings_lang_help": {"en": "Choose your preferred language. All tabs, navigation, and charts will switch instantly.", "kn": "ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ. ಎಲ್ಲಾ ಪುಟಗಳು ತಕ್ಷಣ ಬದಲಾಗುತ್ತವೆ."},
+    "theme_title": {"en": "Select Visual Theme", "kn": "ದೃಶ್ಯ ಥೀಮ್ ಆಯ್ಕೆಮಾಡಿ"},
+    "theme_desc": {"en": "Choose your preferred color theme. Custom themes can be added here.", "kn": "ನಿಮ್ಮ ಆದ್ಯತೆಯ ಬಣ್ಣದ ಥೀಮ್ ಆಯ್ಕೆಮಾಡಿ. ಕಸ್ಟಮ್ ಥೀಮ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಸೇರಿಸಬಹುದು."},
+    "theme_default": {"en": "Karnataka BESCOM (Emerald & Slate)", "kn": "ಕರ್ನಾಟಕ ಬೆಸ್ಕಾಂ (ಹಸಿರು ಮತ್ತು ಕಪ್ಪು)"},
+    "theme_coming_soon": {"en": "📸 Ready for custom themes! Provide your reference images anytime to customize this styling.", "kn": "📸 ಕಸ್ಟಮ್ ಥೀಮ್‌ಗಳಿಗೆ ಸಿದ್ಧವಾಗಿದೆ! ಈ ಶೈಲಿಯನ್ನು ಬದಲಿಸಲು ನಿಮ್ಮ ರೆಫರೆನ್ಸ್ ಚಿತ್ರಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ."},
     "settings_account_sub": {"en": "Account Information", "kn": "ಖಾತೆ ವಿವರಗಳು"},
-    "settings_theme_sub": {"en": "Display & Contrast", "kn": "ಪ್ರದರ್ಶನ ಮತ್ತು ಥೀಮ್"},
-    "settings_theme_desc": {"en": "High contrast Karnataka BESCOM theme is active.", "kn": "ಕರ್ನಾಟಕ ಬೆಸ್ಕಾಂ ಹೈ-ಕಾಂಟ್ರಾಸ್ಟ್ ಥೀಮ್ ಸಕ್ರಿಯವಾಗಿದೆ."},
 
     # --- Login Page ---
     "judge_card_title": {"en": "🚀 Quick Access for Judges & Reviewers", "kn": "🚀 ತ್ವರಿತ ಡೆಮೊ ಪ್ರವೇಶ (ಪರಿಶೀಲಕರಿಗೆ)"},
