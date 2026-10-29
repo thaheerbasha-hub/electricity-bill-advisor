@@ -12,6 +12,7 @@ Features:
 
 import io
 import importlib
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -142,7 +143,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
                 st.write(f"• **Sanctioned Load:** {kw_text}")
 
                 free_u = extracted_data.get("free_units")
-                st.write(f"• **Gruha Jyothi Subsidy:** `{str(free_u) + ' Free Units' if free_u is not None else 'Not Subsidized / ₹0 Subsidy'}`")
+                st.write(f"• **Gruha Jyothi Subsidy:** `{str(free_u) + ' Free Units (Enrolled)' if free_u is not None else 'Not Subsidized / ₹0 Subsidy'}`")
                 st.write(f"• **Fuel Surcharge (F.A.C.):** {fuel_text}")
                 st.write(f"• **Reading Type:** `{'Estimated (Door Lock) ⚠️' if extracted_data.get('estimated') else 'Actual Reading ✅'}`")
 
@@ -171,7 +172,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
     st.caption("You can freely edit, verify, or type any value below before saving. All 8 bill parameters are available below:" if lang == "en" else "ಉಳಿಸುವ ಮೊದಲು ನೀವು ಕೆಳಗಿನ ಯಾವುದೇ ಮೌಲ್ಯವನ್ನು ತಿದ್ದುಪಡಿ ಮಾಡಬಹುದು ಅಥವಾ ಹೊಸದಾಗಿ ನಮೂದಿಸಬಹುದು:")
 
     # Safe bounded clamps to prevent StreamlitValueBelowMinError
-    def_month = str(prefill.get("month") or "Sep 2013")
+    def_month = str(prefill.get("month") or datetime.now().strftime("%b %Y"))
 
     raw_units = prefill.get("units")
     def_units = max(0.0, min(50000.0, float(raw_units if raw_units is not None else 170.0)))
