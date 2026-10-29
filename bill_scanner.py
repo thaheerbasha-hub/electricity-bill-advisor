@@ -1,11 +1,11 @@
 """
-bill_scanner.py · Rapid AI OCR & BESCOM Bill Extraction Engine
-Extracts key Karnataka BESCOM bill fields from uploaded photos, clipboard paste images, and PDFs:
+bill_scanner.py · High-Precision AI OCR & BESCOM Bill Extraction Engine
+Extracts exact Karnataka BESCOM electricity bill fields from uploaded photos, clipboard paste images, and PDFs:
   - Account ID & Consumer Number
   - RR Number & Tariff Classification
   - Billing Month / Label (e.g. Sep 2013, Nov 2026)
   - Units Consumed (kWh) (from 'Consumption' or 'Pres - Prev' reading)
-  - Billing Days in Cycle (exact duration from billing period dates or days field)
+  - Billing Days in Cycle (exact duration from billing period dates)
   - Estimated / Door Lock Status (Actual vs Door Lock DL)
   - Sanctioned Load (kW) (e.g. 10.0 kW, 2.0 kW)
   - Gruha Jyothi Free Units Entitlement (0 - 200 or None if subsidy is ₹0)
@@ -49,11 +49,10 @@ def get_ocr_engine():
 def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
     """
     High-precision parser tailored specifically for Karnataka Electricity Bills (BESCOM/HESCOM/MESCOM/GESCOM/CESC).
-    Parses both Kannada and English bilingual bill receipts.
+    Parses both Kannada and English bilingual bill receipts with zero random guesses.
     """
     clean_lines = [l.strip() for l in ocr_lines if l and l.strip()]
     full_text = "\n".join(clean_lines)
-    full_text_lower = full_text.lower()
 
     data = {
         "account_id": None,
@@ -63,120 +62,67 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
         "units": None,
         "days": 30,
         "load_kw": 2.0,
-        "fuel_rs": 0.37,
+        "fuel_rs": 0.0,
         "free_units": None,
         "estimated": False,
         "bill_amount": None,
         "net_amount": None,
-        "confidence": 75,
+        "confidence": 70,
         "source": "BESCOM Deep AI Scanner"
     }
 
     # 1. Account ID (ಖಾತೆ ಸಂಖ್ಯೆ / Account ID: 1100157649)
-    acc_m = re.search(r'(?:acc[0o]un[td]|account|acct|ಖಾತೆ)[^\d]*([0-9]{8,12})', full_text, re.IGNORECASE)
+    acc_m = re.search(r'(?:acc[0o]un[td]|account|acct|ಖಾತೆ)[^\d\n]*([0-9]{8,12})', full_text, re.IGNORECASE)
     if acc_m:
         data["account_id"] = acc_m.group(1)
 
     # 2. RR Number (ಆರ್.ಆರ್.ಸಂಖ್ಯೆ / RR Number: 14543E)
-    for i, line in enumerate(clean_lines):
-        if re.search(r'rr\s*(?:no\.?|num|number)|ಆರ್\.ಆರ್', line, re.IGNORECASE):
-            for candidate in clean_lines[i + 1:min(i + 3, len(clean_lines))]:
-                m_rr = re.search(r'\b([0-9]{3,6}[A-Z]{1,3}|[A-Z]{1,3}[0-9]{3,6})\b', candidate, re.IGNORECASE)
-                if m_rr:
-                    data["rr_number"] = m_rr.group(1).upper()
-                    break
-            if data["rr_number"]:
-                break
-
-
+    rr_m = re.search(r'(?:rr\s*(?:no\.?|num|number)?|ಆರ್\.ಆರ್)[^\n]*\n\s*([0-9]{3,6}[A-Z]{1,3}|[A-Z]{1,3}[0-9]{3,6})', full_text, re.IGNORECASE)
+    if not rr_m:
+        rr_m = re.search(r'(?:rr\s*(?:no\.?|num|number)?|ಆರ್\.ಆರ್)[:\s\-=]*([0-9]{3,6}[A-Z]{1,3}|[A-Z]{1,3}[0-9]{3,6})', full_text, re.IGNORECASE)
+    if rr_m:
+        data["rr_number"] = rr_m.group(1).upper()
 
     # 3. Tariff (ಜಕಾತಿ / Tariff: LT2A2-N, LT-2(a))
     tariff_m = re.search(r'(?:tariff|ಜಕಾತಿ)[:\s\-=]*([A-Z0-9\-]+)', full_text, re.IGNORECASE)
     if tariff_m:
         data["tariff"] = tariff_m.group(1).strip()
 
-    # 4. Sanctioned Load (ಮಂ. ಪ್ರಮಾಣ / Sanct. Load: 0.00HP+10.00KW)
-    load_found = False
-    # Check compound HP + KW pattern first
-    for i, line in enumerate(clean_lines):
-        if re.search(r'sanct|load|ಪ್ರಮಾಣ', line, re.IGNORECASE):
-            for candidate in clean_lines[i:min(i + 3, len(clean_lines))]:
-                m = re.search(r'(?:(\d+(?:\.\d+)?)\s*hp\s*\+\s*)?(\d+(?:\.\d+)?)\s*kw', candidate, re.IGNORECASE)
-                if m:
-                    kw_val = float(m.group(2)) if m.group(2) else 0.0
-                    hp_val = float(m.group(1)) if m.group(1) else 0.0
-                    data["load_kw"] = round(kw_val + (hp_val * 0.746), 2)
-                    load_found = True
-                    break
-        if load_found:
-            break
+    # 4. Units Consumed (ಬಳಕೆ / Consumption: 4100)
+    units_m = re.search(r'(?:consumption|usage|ಬಳಕೆ)[^\n]*\n\s*(\d{1,6}(?:\.\d+)?)', full_text, re.IGNORECASE)
+    if not units_m:
+        units_m = re.search(r'(?:consumption|usage|ಬಳಕೆ|units\s*consumed|billed\s*units)[:\s\-=]*(\d{1,6}(?:\.\d+)?)', full_text, re.IGNORECASE)
+    
+    if units_m:
+        data["units"] = float(units_m.group(1))
+    else:
+        # Cross check Pres Rdg - Prev Rdg
+        pres_m = re.search(r'(?:pres\.?\s*rdg|ಪ್ರಸ್ತುತ)[^\n]*\n\s*(\d{2,6})', full_text, re.IGNORECASE)
+        prev_m = re.search(r'(?:prev\.?\s*rdg|ಹಿಂದಿನ)[^\n]*\n\s*(\d{2,6})', full_text, re.IGNORECASE)
+        if pres_m and prev_m:
+            try:
+                pr1 = float(pres_m.group(1))
+                pr2 = float(prev_m.group(1))
+                if pr1 >= pr2:
+                    data["units"] = round(pr1 - pr2, 1)
+            except Exception:
+                pass
 
-    if not load_found:
+    # 5. Sanctioned Load (ಮಂ. ಪ್ರಮಾಣ / Sanct. Load: 0.00HP+10.00KW)
+    load_m = re.search(r'(?:sanct|connected\s*load|ಪ್ರಮಾಣ)[^\n]*\n\s*(?:(\d+(?:\.\d+)?)\s*hp\s*\+\s*)?(\d+(?:\.\d+)?)\s*(?:kw)?', full_text, re.IGNORECASE)
+    if not load_m:
+        load_m = re.search(r'(?:sanct|load)[^\n]*?(?:(\d+(?:\.\d+)?)\s*hp\s*\+\s*)?(\d+(?:\.\d+)?)\s*(?:kw)', full_text, re.IGNORECASE)
+    if load_m:
+        kw = float(load_m.group(2)) if load_m.group(2) else 0.0
+        hp = float(load_m.group(1)) if load_m.group(1) else 0.0
+        data["load_kw"] = round(kw + (hp * 0.746), 1) if (kw or hp) else 2.0
+    else:
         # Check single load pattern
-        load_single = re.search(r'(?:sanct(?:ioned)?\s*load|load\s*\(?kw\)?|load)[:\s\-=]*(\d+(?:\.\d+)?)\s*(?:kw)?', full_text_lower)
-        if load_single:
-            val = float(load_single.group(1))
-            if 0.5 <= val <= 50.0:
-                data["load_kw"] = val
+        single_m = re.search(r'(?:sanct(?:ioned)?\s*load|load\s*\(?kw\)?|load)[:\s\-=]*(\d+(?:\.\d+)?)\s*(?:kw)?', full_text, re.IGNORECASE)
+        if single_m:
+            data["load_kw"] = float(single_m.group(1))
 
-    # 5. Units Consumed (ಬಳಕೆ / Consumption: 4100)
-    # Search for consumption line
-    units_found = False
-    pres_rdg = None
-    prev_rdg = None
-
-    for i, line in enumerate(clean_lines):
-        # Look for Consumption label
-        if re.search(r'\b(?:consumption|usage|ಬಳಕೆ)\b', line, re.IGNORECASE):
-            # Check numbers in same line
-            m = re.search(r'(\d{2,6}(?:\.\d+)?)', line)
-            if m:
-                data["units"] = float(m.group(1))
-                units_found = True
-                break
-            # Check numbers in next line
-            if i + 1 < len(clean_lines):
-                m2 = re.search(r'^\s*(\d{1,6}(?:\.\d+)?)\s*$', clean_lines[i + 1])
-                if m2:
-                    data["units"] = float(m2.group(1))
-                    units_found = True
-                    break
-
-        # Check Pres Rdg & Prev Rdg
-        if re.search(r'pres\.?\s*rdg|ಪ್ರಸ್ತುತ', line, re.IGNORECASE):
-            m_pr = re.search(r'(\d{2,6})', line)
-            if not m_pr and i + 1 < len(clean_lines):
-                m_pr = re.search(r'(\d{2,6})', clean_lines[i + 1])
-            if m_pr:
-                try:
-                    pres_rdg = float(m_pr.group(1))
-                except Exception:
-                    pass
-
-        if re.search(r'prev\.?\s*rdg|ಹಿಂದಿನ', line, re.IGNORECASE):
-            m_pv = re.search(r'(\d{2,6})', line)
-            if not m_pv and i + 1 < len(clean_lines):
-                m_pv = re.search(r'(\d{2,6})', clean_lines[i + 1])
-            if m_pv:
-                try:
-                    prev_rdg = float(m_pv.group(1))
-                except Exception:
-                    pass
-
-    # Cross-check or fallback using Pres Rdg - Prev Rdg
-    if not units_found and pres_rdg is not None and prev_rdg is not None and pres_rdg >= prev_rdg:
-        data["units"] = round(pres_rdg - prev_rdg, 1)
-        units_found = True
-
-    if not units_found:
-        # Try generic units pattern, avoiding 'free units'
-        gen_u = re.search(r'(?:billed\s*units|total\s*units|units\s*consumed)[:\s\-=]*(\d+(?:\.\d+)?)', full_text_lower)
-        if not gen_u:
-            gen_u = re.search(r'(?<!free\s)(?<!entitled\s)\bunits[:\s\-=]*(\d+(?:\.\d+)?)', full_text_lower)
-        if gen_u:
-            data["units"] = float(gen_u.group(1))
-
-    # 6. Billing Period, Days in Cycle, and Billing Month
+    # 6. Billing Period, Billing Days, and Month
     # Pattern: 01/07/13 - 01/09/13 or 01/07/2026 to 01/08/2026
     period_m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})\s*[-–to]+\s*(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', full_text)
     if period_m:
@@ -193,8 +139,8 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
         except Exception:
             pass
 
-    # If month wasn't parsed from period, check reading date or bill date
     if not data["month"]:
+        # Fallback to reading date, bill date, or due date
         date_m = re.search(r'(?:reading\s*date|bill\s*date|due\s*date|ದಿನಾಂಕ)[:\s\-=]*(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', full_text, re.IGNORECASE)
         if date_m:
             d, m, y = date_m.groups()
@@ -206,86 +152,63 @@ def parse_bescom_bill_text(ocr_lines: list[str]) -> dict:
                 pass
 
     if not data["month"]:
-        # Check text month e.g. Nov 2026 or November 2026
+        # Check text month e.g. Nov 2026 or September 2013
         name_m = re.search(r'\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[,\s\-_]+(202[0-9]|201[0-9])\b', full_text, re.IGNORECASE)
         if name_m:
             data["month"] = f"{name_m.group(1)[:3].capitalize()} {name_m.group(2)}"
 
     # 7. Fuel Surcharge / FPPCA / F.A.C.
-    # In BESCOM bills: 'ಇಂಧನ ಹೊಂದಾಣಿಕೆ ಶುಲ್ಕ / F.A.C. : 0.00'
-    for i, line in enumerate(clean_lines):
-        if re.search(r'\b(?:f\.?a\.?c|fuel\s*surcharge|fppca|ಇಂಧನ)\b', line, re.IGNORECASE):
-            for candidate in clean_lines[i:min(i + 3, len(clean_lines))]:
-                fm = re.search(r'(\d+(?:\.\d+)?)', candidate)
-                if fm:
-                    val = float(fm.group(1))
-                    if val <= 10.0:
-                        data["fuel_rs"] = val
-                        break
-            break
+    fac_m = re.search(r'(?:f\.?a\.?c|fuel\s*surcharge|fppca|ಇಂಧನ)[^\n]*\n\s*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
+    if not fac_m:
+        fac_m = re.search(r'(?:f\.?a\.?c|fuel\s*surcharge|fppca|ಇಂಧನ)[:\s\-=]*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
+    if fac_m:
+        data["fuel_rs"] = float(fac_m.group(1))
 
-    # 8. Gruha Jyothi Entitlement & Free Units
-    # Look for explicit Gruha Jyothi or Free Units
+    # 8. Financial Totals (Current Bill Amt & Net Amt Due)
+    b_m = re.search(r'(?:cuen|current\s*bill|bill\s*amt|ಬಿಲ್\s*ಮೊತ್ತ)[^\n]*\n\s*(\d{2,6}\.\d{2})', full_text, re.IGNORECASE)
+    if not b_m:
+        b_m = re.search(r'(?:cuen|current\s*bill|bill\s*amt|ಬಿಲ್\s*ಮೊತ್ತ)[:\s\-=]*(\d{2,6}\.\d{2})', full_text, re.IGNORECASE)
+    if b_m:
+        data["bill_amount"] = float(b_m.group(1))
+
+    net_m = re.search(r'(?:nemd|net\s*amt|net\s*due|payable|ಪಾವತಿಸಬೇಕಾದ)[^\d\n]*(\d{2,6}(?:\.\d{2})?)', full_text, re.IGNORECASE)
+    if net_m:
+        data["net_amount"] = float(net_m.group(1))
+
+    # 9. Gruha Jyothi Free Units Entitlement & Subsidy
     gj_m = re.search(r'(?:gruha\s*jyothi|free\s*units|entitled\s*units|ಉಚಿತ\s*ಯೂನಿಟ್)[:\s\-=]*(\d{1,3})', full_text, re.IGNORECASE)
     if gj_m:
         data["free_units"] = int(gj_m.group(1))
     else:
         # Check GOK Subsidy (ಸರ್ಕಾರದ ಸಹಾಯಧನ / GOK Subsidy : 0.00)
-        gok_m = re.search(r'(?:gok\s*subsidy|govt\s*subsidy|ಸಹಾಯಧನ)[:\s\-=]*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
-        if gok_m:
-            sub_val = float(gok_m.group(1))
-            if sub_val == 0.0:
-                data["free_units"] = None
-            else:
-                # Subsidized: default domestic entitlement is up to 150-200 units
-                data["free_units"] = min(int(data.get("units") or 150), 200)
+        gok_m = re.search(r'(?:gok\s*subsidy|govt\s*subsidy|ಸಹಾಯಧನ)[^\n]*\n\s*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
+        if not gok_m:
+            gok_m = re.search(r'(?:gok\s*subsidy|govt\s*subsidy|ಸಹಾಯಧನ)[:\s\-=]*(\d+(?:\.\d+)?)', full_text, re.IGNORECASE)
+        if gok_m and float(gok_m.group(1)) == 0.0:
+            data["free_units"] = None
+        elif data.get("tariff") and "lt2a2" in data["tariff"].lower():
+            # Commercial/high consumption LT2A2 tariff does not receive domestic subsidy
+            data["free_units"] = None
+        elif data.get("units") and data["units"] > 200:
+            # Over 200 units cap in Karnataka disqualifies from Gruha Jyothi subsidy
+            data["free_units"] = None
 
-    # 9. Estimated Reading / Door Lock
-    if any(k in full_text_lower for k in ["door lock", "dl reading", "estimated reading", "average bill", "ಬಾಗಿಲು ಬೀಗ"]):
+    # 10. Estimated Reading / Door Lock
+    if any(k in full_text.lower() for k in ["door lock", "dl reading", "estimated reading", "average bill", "ಬಾಗಿಲು ಬೀಗ"]):
         data["estimated"] = True
     else:
         data["estimated"] = False
 
-    # 10. Financial Totals (Current Bill Amt & Net Amt Due)
-    for i, line in enumerate(clean_lines):
-        if re.search(r'cuen|current\s*bill|bill\s*amt|ಬಿಲ್\s*ಮೊತ್ತ', line, re.IGNORECASE):
-            for candidate in clean_lines[i:min(i + 3, len(clean_lines))]:
-                m = re.search(r'(\d{2,6}\.\d{2})', candidate)
-                if m:
-                    data["bill_amount"] = float(m.group(1))
-                    break
-            if data["bill_amount"]:
-                break
-
-    for i, line in enumerate(clean_lines):
-        if re.search(r'nemd|net\s*amt|net\s*due|total\s*payable|ಪಾವತಿಸಬೇಕಾದ', line, re.IGNORECASE):
-            for candidate in clean_lines[i:min(i + 3, len(clean_lines))]:
-                m = re.search(r'(\d{2,6}(?:\.\d{2})?)', candidate)
-                if m and float(m.group(1)) > 50:
-                    data["net_amount"] = float(m.group(1))
-                    break
-            if data["net_amount"]:
-                break
-
-    # Confidence calculation based on matched essentials
+    # Calculate confidence based on extracted essentials
     score = 0
-    if data["units"] is not None: score += 30
+    if data["units"] is not None: score += 35
     if data["month"]: score += 20
     if data["load_kw"] is not None: score += 15
     if data["account_id"]: score += 15
-    if data["days"]: score += 10
-    if data["fuel_rs"] is not None: score += 10
+    if data["bill_amount"] is not None: score += 15
     data["confidence"] = min(score, 100)
 
-    # Fallback month if still not found
-    if not data["month"]:
-        data["month"] = datetime.now().strftime("%b %Y")
-
-    # Fallback units if bill image was completely unreadable
-    if data["units"] is None:
-        data["units"] = 170.0
-        data["confidence"] = max(data["confidence"] - 20, 50)
-
+    # If units is still None, return None so UI can report error instead of fake values
     return data
 
 
@@ -293,57 +216,17 @@ def analyze_bill_image(pil_img: Image.Image) -> dict:
     """Analyze a PIL Image using RapidOCR and return parsed bill dictionary."""
     engine = get_ocr_engine()
     if engine is None:
-        # Fallback if OCR engine is unavailable
-        return {
-            "month": datetime.now().strftime("%b %Y"),
-            "units": 170.0,
-            "days": 30,
-            "load_kw": 2.0,
-            "fuel_rs": 0.37,
-            "free_units": 150,
-            "estimated": False,
-            "confidence": 60,
-            "source": "Heuristic Parser"
-        }
+        raise RuntimeError("RapidOCR engine is not available on this server.")
 
-    try:
-        # Ensure RGB format
-        if pil_img.mode != "RGB":
-            pil_img = pil_img.convert("RGB")
+    # Run RapidOCR inference
+    results, _ = engine(pil_img)
+    if not results:
+        raise ValueError("No readable text found in the provided image. Please upload a clear photo of the bill.")
 
-        # Run RapidOCR inference
-        results, _ = engine(pil_img)
-        if not results:
-            return {
-                "month": datetime.now().strftime("%b %Y"),
-                "units": 170.0,
-                "days": 30,
-                "load_kw": 2.0,
-                "fuel_rs": 0.37,
-                "free_units": 150,
-                "estimated": False,
-                "confidence": 50,
-                "source": "Image OCR (No clear text detected)"
-            }
-
-        lines = [item[1] for item in results if item and len(item) > 1]
-        data = parse_bescom_bill_text(lines)
-        data["source"] = f"RapidOCR AI Engine ({len(lines)} lines detected)"
-        return data
-
-    except Exception as e:
-        return {
-            "month": datetime.now().strftime("%b %Y"),
-            "units": 170.0,
-            "days": 30,
-            "load_kw": 2.0,
-            "fuel_rs": 0.37,
-            "free_units": 150,
-            "estimated": False,
-            "confidence": 40,
-            "error": str(e),
-            "source": "Fallback Parser"
-        }
+    lines = [item[1].strip() for item in results if item and len(item) > 1 and item[1].strip()]
+    data = parse_bescom_bill_text(lines)
+    data["source"] = f"RapidOCR AI Engine ({len(lines)} lines detected)"
+    return data
 
 
 def analyze_uploaded_bill(file_bytes: bytes, file_name: str, pil_image: Image.Image = None) -> dict:
@@ -355,35 +238,18 @@ def analyze_uploaded_bill(file_bytes: bytes, file_name: str, pil_image: Image.Im
 
     # 1. Handle PDF
     if file_ext == "pdf" and HAS_PYPDF:
-        try:
-            reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-            raw_text = ""
-            for page in reader.pages:
-                txt = page.extract_text()
-                if txt:
-                    raw_text += txt + "\n"
-            if len(raw_text.strip()) > 30:
-                lines = raw_text.splitlines()
-                data = parse_bescom_bill_text(lines)
-                data["source"] = "Digital PDF Text Layer"
-                return data
-        except Exception:
-            pass
+        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+        raw_text = ""
+        for page in reader.pages:
+            txt = page.extract_text()
+            if txt:
+                raw_text += txt + "\n"
+        if len(raw_text.strip()) > 30:
+            lines = raw_text.splitlines()
+            data = parse_bescom_bill_text(lines)
+            data["source"] = "Digital PDF Text Layer"
+            return data
 
     # 2. Handle Image
-    try:
-        img = Image.open(io.BytesIO(file_bytes))
-        return analyze_bill_image(img)
-    except Exception as e:
-        return {
-            "month": datetime.now().strftime("%b %Y"),
-            "units": 170.0,
-            "days": 30,
-            "load_kw": 2.0,
-            "fuel_rs": 0.37,
-            "free_units": 150,
-            "estimated": False,
-            "confidence": 40,
-            "error": str(e),
-            "source": "Default Parser"
-        }
+    img = Image.open(io.BytesIO(file_bytes))
+    return analyze_bill_image(img)

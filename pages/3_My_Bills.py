@@ -3,7 +3,7 @@
 Assigned to: THAHEER
 Features:
   - Smart Bill Scanner: Drag-and-drop file upload (PNG, JPG, PDF) or copy-paste directly from clipboard (Ctrl+V)
-  - Rapid AI OCR Engine: Automatically and accurately extracts real Karnataka BESCOM bill parameters in seconds
+  - Rapid AI OCR Engine: Automatically and accurately extracts exact Karnataka BESCOM bill parameters in seconds
   - Auto-fills Month, Units, Billing Days, Sanctioned Load, Fuel Surcharge, and Subsidy Status
   - 100% Manual entry & editing support retained
   - Saved bills table with daily average calculations & bill deletion
@@ -11,6 +11,7 @@ Features:
 """
 
 import io
+import importlib
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -18,6 +19,9 @@ import db
 import ui_common
 import text
 import bill_scanner
+
+# Ensure fresh reload of bill_scanner module
+importlib.reload(bill_scanner)
 
 try:
     from streamlit_paste_button import paste_image_button
@@ -84,22 +88,46 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
     extracted_data = None
     preview_img = None
     doc_source = None
+    scan_error = None
 
     if uploaded_file is not None:
-        file_bytes = uploaded_file.read()
-        doc_source = uploaded_file.name
-        if uploaded_file.name.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
-            try:
-                preview_img = Image.open(io.BytesIO(file_bytes))
-            except Exception:
-                preview_img = None
-        with st.spinner("⚡ " + ("Analyzing bill layout with AI Vision Scanner..." if lang == "en" else "AI ಸ್ಕ್ಯಾನರ್ ಮೂಲಕ ಬಿಲ್ ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...")):
-            extracted_data = bill_scanner.analyze_uploaded_bill(file_bytes, uploaded_file.name, pil_image=preview_img)
+        try:
+            uploaded_file.seek(0)
+            file_bytes = uploaded_file.read()
+            uploaded_file.seek(0)
+            doc_source = uploaded_file.name
+            
+            # Cache key to prevent re-running OCR repeatedly on every widget interaction
+            cache_key = f"scan_{uploaded_file.name}_{len(file_bytes)}"
+            if st.session_state.get("active_scan_key") == cache_key and "active_scan_data" in st.session_state:
+                extracted_data = st.session_state["active_scan_data"]
+                preview_img = st.session_state.get("active_scan_preview")
+            else:
+                if uploaded_file.name.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+                    try:
+                        preview_img = Image.open(io.BytesIO(file_bytes))
+                    except Exception:
+                        preview_img = None
+
+                with st.spinner("⚡ " + ("Analyzing bill layout with AI Vision Scanner..." if lang == "en" else "AI ಸ್ಕ್ಯಾನರ್ ಮೂಲಕ ಬಿಲ್ ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...")):
+                    extracted_data = bill_scanner.analyze_uploaded_bill(file_bytes, uploaded_file.name, pil_image=preview_img)
+                    st.session_state["active_scan_key"] = cache_key
+                    st.session_state["active_scan_data"] = extracted_data
+                    st.session_state["active_scan_preview"] = preview_img
+        except Exception as ex:
+            scan_error = str(ex)
+
     elif paste_result and paste_result.image_data is not None:
-        preview_img = paste_result.image_data
-        doc_source = "Clipboard Pasted Image"
-        with st.spinner("⚡ " + ("Analyzing pasted bill with AI Vision Scanner..." if lang == "en" else "ಪೇಸ್ಟ್ ಮಾಡಿದ ಬಿಲ್ ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...")):
-            extracted_data = bill_scanner.analyze_bill_image(preview_img)
+        try:
+            preview_img = paste_result.image_data
+            doc_source = "Clipboard Pasted Image"
+            with st.spinner("⚡ " + ("Analyzing pasted bill with AI Vision Scanner..." if lang == "en" else "ಪೇಸ್ಟ್ ಮಾಡಿದ ಬಿಲ್ ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...")):
+                extracted_data = bill_scanner.analyze_bill_image(preview_img)
+        except Exception as ex:
+            scan_error = str(ex)
+
+    if scan_error:
+        st.error(f"❌ Error scanning bill: {scan_error}. Please ensure the bill image is clear and try again.")
 
     # If extraction succeeded, show review card and Auto-fill button
     if extracted_data:
@@ -165,9 +193,9 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
     def_days = int(prefill.get("days", 30))
     def_est = bool(prefill.get("estimated", False))
     def_kw = float(prefill.get("load_kw", 2.0))
-    def_gj = (prefill.get("free_units") is not None) if "free_units" in prefill else True
+    def_gj = (prefill.get("free_units") is not None) if "free_units" in prefill else False
     def_free = int(prefill.get("free_units", 150) or 150)
-    def_fuel = float(prefill.get("fuel_rs", 0.37))
+    def_fuel = float(prefill.get("fuel_rs", 0.00))
 
     k_prefix = f"pf_{st.session_state.get('prefill_counter', 0)}"
 
@@ -177,7 +205,7 @@ with st.expander(text.T("bills_add_expander", lang), expanded=len(bills) == 0):
             month = st.text_input(
                 text.T("bill_month_label", lang),
                 value=def_month,
-                placeholder="e.g. Nov 2026",
+                placeholder="e.g. Sep 2013 or Nov 2026",
                 key=f"{k_prefix}_month"
             )
             units = st.number_input(
