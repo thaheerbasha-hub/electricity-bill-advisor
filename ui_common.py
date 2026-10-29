@@ -1,5 +1,6 @@
 """
 ui_common.py · Shared UI styling, layout, and sidebar across all pages
+Guarantees high contrast, professional typography, and full visibility in all themes.
 """
 
 import streamlit as st
@@ -8,70 +9,142 @@ import streamlit as st
 def apply_custom_css():
     st.markdown("""
     <style>
-    /* Global modern clean style */
+    /* =========================================================
+       1. GLOBAL THEME & VISIBILITY OVERRIDES (STRICT CONTRAST)
+       ========================================================= */
     .stApp {
-        background-color: #f8fafc;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f8fafc !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
     }
     
-    /* Headers & Brand */
-    h1, h2, h3 {
-        color: #0f172a;
-        font-weight: 700;
+    /* Ensure all text, paragraphs, and markdown are dark and crisp */
+    .stApp, 
+    .stApp p, 
+    .stApp span, 
+    .stApp div[data-testid="stMarkdownContainer"] p,
+    .stApp div[data-testid="stMarkdownContainer"] li {
+        color: #0f172a !important;
     }
     
-    /* Card Container */
-    .pbc-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 16px;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    /* Headings */
+    h1, h2, h3, h4, h5, h6,
+    [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMarkdownContainer"] h3,
+    [data-testid="stMarkdownContainer"] h4 {
+        color: #0f172a !important;
+        font-weight: 700 !important;
     }
     
-    /* Metric Highlights */
-    .pbc-metric-box {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 16px;
-        border-left: 5px solid #10b981;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    /* Captions & Subtitles */
+    .stCaption, 
+    [data-testid="stCaptionContainer"],
+    [data-testid="stCaptionContainer"] p {
+        color: #475569 !important;
+        font-size: 0.92rem !important;
     }
     
-    /* Button primary */
+    /* Form & Input Labels */
+    [data-testid="stWidgetLabel"] label,
+    [data-testid="stWidgetLabel"] p {
+        color: #1e293b !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+    }
+    
+    /* Text & Number Inputs */
+    .stTextInput input, 
+    .stNumberInput input {
+        color: #0f172a !important;
+        background-color: #ffffff !important;
+        border: 1.5px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+    }
+    .stTextInput input:focus, 
+    .stNumberInput input:focus {
+        border-color: #059669 !important;
+        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2) !important;
+    }
+    
+    /* Tabs Visibility */
+    button[data-baseweb="tab"] {
+        color: #334155 !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #059669 !important;
+        border-bottom-color: #059669 !important;
+    }
+    
+    /* Bordered Containers (Cards) */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.06) !important;
+    }
+    
+    /* Buttons */
     .stButton>button[kind="primary"] {
-        background-color: #059669;
-        border-color: #059669;
-        color: white;
-        border-radius: 8px;
-        font-weight: 600;
+        background-color: #059669 !important;
+        border: 1px solid #059669 !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 8px 18px !important;
+    }
+    .stButton>button[kind="primary"]:hover {
+        background-color: #047857 !important;
+        border-color: #047857 !important;
+    }
+    .stButton>button[kind="secondary"] {
+        background-color: #ffffff !important;
+        border: 1.5px solid #cbd5e1 !important;
+        color: #1e293b !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }
+    .stButton>button[kind="secondary"]:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
     }
     
-    /* Alert badges */
-    .badge-danger {
-        background-color: #fee2e2;
-        color: #991b1b;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.85em;
+    /* Metrics display */
+    [data-testid="stMetricValue"] {
+        color: #0f172a !important;
+        font-weight: 700 !important;
     }
-    .badge-success {
-        background-color: #dcfce7;
-        color: #166534;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.85em;
+    [data-testid="stMetricLabel"] p {
+        color: #475569 !important;
+        font-weight: 600 !important;
     }
-    .badge-warn {
-        background-color: #fef3c7;
-        color: #92400e;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.85em;
+    
+    /* =========================================================
+       2. DARK SIDEBAR STYLING
+       ========================================================= */
+    section[data-testid="stSidebar"] {
+        background-color: #0f172a !important;
+    }
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label {
+        color: #f8fafc !important;
+    }
+    section[data-testid="stSidebar"] .stRadio label {
+        color: #e2e8f0 !important;
+    }
+    section[data-testid="stSidebar"] button {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+        border: 1px solid #334155 !important;
+    }
+    section[data-testid="stSidebar"] button:hover {
+        background-color: #334155 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -80,19 +153,18 @@ def apply_custom_css():
 def render_sidebar():
     """Consistent sidebar across every page: user status, language, logout, helpline"""
     with st.sidebar:
-        # App logo & title
-        st.markdown("### ⚡ Power Bill Coach")
-        st.caption("Karnataka · BESCOM Domestic Advisor")
+        st.markdown("<h2 style='color:#f8fafc; margin-bottom:2px;'>⚡ Power Bill Coach</h2>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#94a3b8; font-size:0.85em; margin-bottom:14px;'>Karnataka · BESCOM Domestic Advisor</div>", unsafe_allow_html=True)
         st.divider()
 
         user = st.session_state.get("user")
         if user:
             # User profile card
             st.markdown(f"""
-            <div style="background:#f1f5f9; padding:12px; border-radius:10px; margin-bottom:12px;">
-                <div style="font-size:0.8em; color:#64748b; text-transform:uppercase; font-weight:700;">Logged In As</div>
-                <div style="font-size:1.1em; font-weight:700; color:#0f172a;">👤 {user['name']}</div>
-                <div style="font-size:0.85em; color:#475569;">📞 {user['phone']}</div>
+            <div style="background:#1e293b; border:1px solid #334155; padding:12px; border-radius:10px; margin-bottom:14px;">
+                <div style="font-size:0.75em; color:#94a3b8; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Logged In As</div>
+                <div style="font-size:1.05em; font-weight:700; color:#f8fafc;">👤 {user['name']}</div>
+                <div style="font-size:0.85em; color:#cbd5e1;">📞 {user['phone']}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -115,11 +187,15 @@ def render_sidebar():
                 st.rerun()
         else:
             # Not logged in
-            st.info("🔐 Please log in to view your household bills and insights.")
+            st.markdown("""
+            <div style="background:#1e293b; border:1px solid #334155; padding:12px; border-radius:10px; color:#cbd5e1; font-size:0.9em; margin-bottom:14px;">
+                🔐 Please log in to view your household bills and insights.
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.caption("☎️ **BESCOM Helpline**: 1912")
-        st.caption("📱 **BESCOM Mithra App** for official meter complaints")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#94a3b8; font-size:0.85em;'>☎️ <b>BESCOM Helpline:</b> 1912</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#94a3b8; font-size:0.85em;'>📱 <b>BESCOM Mithra App</b> for official meter complaints</div>", unsafe_allow_html=True)
 
 
 def rupees(x):
