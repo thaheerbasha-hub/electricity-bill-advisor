@@ -21,13 +21,6 @@ def _on_lang_switch():
     st.session_state["lang"] = "kn" if chosen == "ಕನ್ನಡ" else "en"
 
 
-def _on_login_theme_change():
-    chosen_label = st.session_state.get("login_theme_selector")
-    chosen_key = ui_common.THEME_DISPLAY_TO_KEY.get(chosen_label, "classic")
-    st.session_state["theme"] = chosen_key
-    st.query_params["theme"] = chosen_key
-
-
 # Centered Layout
 _, main_col, _ = st.columns([1, 8, 1])
 
@@ -106,40 +99,15 @@ with main_col:
                 else:
                     st.error(text.T("err_user_exists", lang))
 
-    # --- TAB 3: SETTINGS (with Language and Theme sub-tabs) ---
+    # --- TAB 3: SETTINGS ---
     with tab_settings:
         st.subheader(text.T("settings_sub", lang))
-        
-        sub_tab_lang, sub_tab_theme = st.tabs([
-            text.T("settings_tab_lang", lang),
-            text.T("settings_tab_theme", lang)
-        ])
-
-        with sub_tab_lang:
-            st.write(text.T("settings_lang_help", lang))
-            st.radio(
-                text.T("settings_lang_label", lang),
-                options=["English", "ಕನ್ನಡ"],
-                index=0 if lang == "en" else 1,
-                horizontal=True,
-                key="login_settings_lang",
-                on_change=_on_lang_switch
-            )
-
-        with sub_tab_theme:
-            st.subheader(text.T("theme_title", lang))
-            st.write(text.T("theme_desc", lang))
-
-            current_theme_key = ui_common.get_current_theme()
-            current_theme_label = ui_common.THEMES.get(current_theme_key, "Classic Clean (Default)")
-            theme_options = list(ui_common.THEMES.values())
-            curr_idx = theme_options.index(current_theme_label) if current_theme_label in theme_options else 0
-
-            st.selectbox(
-                text.T("theme_title", lang),
-                options=theme_options,
-                index=curr_idx,
-                key="login_theme_selector",
-                on_change=_on_login_theme_change
-            )
-            st.caption("Theme selection applies globally and persists in your browser." if lang == "en" else "ಥೀಮ್ ಆಯ್ಕೆಯು ಎಲ್ಲಾ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸುತ್ತದೆ.")
+        st.write(text.T("settings_lang_help", lang))
+        st.radio(
+            text.T("settings_lang_label", lang),
+            options=["English", "ಕನ್ನಡ"],
+            index=0 if lang == "en" else 1,
+            horizontal=True,
+            key="login_settings_lang",
+            on_change=_on_lang_switch
+        )
