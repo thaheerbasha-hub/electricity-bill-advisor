@@ -516,28 +516,12 @@ def apply_custom_css():
 
 
 def render_sidebar():
-    """Consistent clean sidebar across pages with Theme selector and user profile."""
+    """Consistent clean sidebar across pages with user profile and help info."""
     current_lang = st.session_state.get("lang", "en")
-    active_theme = get_current_theme()
 
     with st.sidebar:
         st.markdown(f"## {text.T('app_title', current_lang)}")
         st.caption(text.T("app_subtitle", current_lang))
-        st.divider()
-
-        # Clean Global Theme Selector Dropdown in Sidebar
-        current_display = THEMES.get(active_theme, "Classic Clean (Default)")
-        theme_names = list(THEMES.values())
-        theme_index = theme_names.index(current_display) if current_display in theme_names else 0
-
-        st.selectbox(
-            "🎨 " + ("Theme / ಥೀಮ್" if current_lang == "kn" else "Theme"),
-            options=theme_names,
-            index=theme_index,
-            key="global_sidebar_theme_selector",
-            on_change=_on_theme_dropdown_change
-        )
-
         st.divider()
 
         user = st.session_state.get("user")
