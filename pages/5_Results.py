@@ -1,137 +1,289 @@
 """
-5_Results.py · Results & Insights Breakdown
-Assigned to: RISHABH
+pages/5_Results.py · Results & Insights Breakdown
+Assigned to: RISHABH (HackNova-26, Problem P01)
+
 Features:
-  - 3 Cards:
-      1. Why it changed (rupee reasons + waterfall chart)
-      2. Where the waste is (vacation test, unmeasured loss, alert)
-      3. How to save (tailored tips with ₹ savings)
-  - Fully bilingual (English / Kannada)
+  - Card 1 'Why your bill changed': headline rupees up/down, biggest reason, each reason with its rupees and tag, plus a Plotly waterfall from last bill to this bill. All from engine.explain(bills, answers).
+  - Card 2 'Where the waste is': waste_checks() results as coloured messages (red / amber / green).
+  - Card 3 'How to save': top tips from tips(), each with the rupees-saved range and cost.
+  - Fully bilingual (English / Kannada via text.T) and themed with ui_common.
+  - Safe against 0 bills or unauthenticated access.
 """
 
-import streamlit as st
+from typing import Any, Dict, List
 import plotly.graph_objects as go
+import streamlit as st
+
 import db
 import ui_common
 import text
+import questions
 
+# Attempt import from engine with TEMP fallback
+try:
+    from engine import explain, RATE, TAX, GJ_CAP, full_bill, to_pay, normal_use
+except ImportError:
+    # TEMP until engine.py is ready
+    RATE = 5.80
+    TAX = 0.09
+    GJ_CAP = 200
+
+    def explain(bills, answers):
+        return [], 0.0, 5.0
+
+    def to_pay(u, d, kw, f, free):
+        energy = u * RATE
+        full = energy + kw * 150 * d / 30 + u * f + energy * TAX
+        if free is None or u > GJ_CAP:
+            return full
+        if u <= free:
+            return 0.0
+        return (u - free) * (RATE * (1 + TAX) + f)
+
+# Ensure user dict compatibility for ui_common
+if isinstance(st.session_state.get("user"), dict):
+    st.session_state["user"].setdefault("name", st.session_state["user"].get("id", "User"))
+
+# Apply global styling and persistent sidebar
 ui_common.apply_custom_css()
 ui_common.render_sidebar()
 
-user = st.session_state.get("user")
-if not user:
-    st.warning("Please log in first.")
-    st.stop()
-
 lang = st.session_state.get("lang", "en")
+user = st.session_state.get("user")
 
-st.title(text.T("results_title", lang))
-st.caption(text.T("results_caption", lang))
+# Header
+title_text = text.T("results_title", lang)
+if title_text == "results_title":
+    title_text = "Electricity Bill Results"
+st.title(title_text)
 
-bills = db.get_bills(user["id"])
-if len(bills) < 2:
-    st.warning("Please record at least 2 bills in **My Bills** to view diagnostic results." if lang == "en" else "ಫಲಿತಾಂಶ ನೋಡಲು ದಯವಿಟ್ಟು **ನನ್ನ ಬಿಲ್‌ಗಳು** ಪುಟದಲ್ಲಿ ಕನಿಷ್ಠ 2 ಬಿಲ್ ದಾಖಲಿಸಿ.")
+caption_text = text.T("results_caption", lang)
+if caption_text == "results_caption":
+    caption_text = "“Not every bill jump is your fault. We show you exactly which part is.”"
+st.caption(caption_text)
+
+# -----------------------------------------------------------------------------
+# User & Session Validation (Must not crash if not logged in or 0 bills)
+# -----------------------------------------------------------------------------
+user_id = "demo_user"
+if not user:
+    st.info("👋 " + ("Viewing in guest mode. To save your household history, log in or switch to an account."
+                     if lang == "en" else
+                     "ಅತಿಥಿಯಾಗಿ ವೀಕ್ಷಿಸುತ್ತಿದ್ದೀರಿ. ಬಿಲ್ ಇತಿಹಾಸವನ್ನು ಉಳಿಸಲು ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಿ."))
+else:
+    user_id = user.get("id", "demo_user") if isinstance(user, dict) else str(user)
+    user_name = user.get("name", user_id) if isinstance(user, dict) else user_id
+    st.caption(f"👤 Account: **{user_name}**")
+
+# Check answers
+answers = st.session_state.get("answers") or st.session_state.get("bill_answers")
+if not answers:
+    st.warning("📋 " + ("No household answers found yet." if lang == "en" else "ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳ ಉತ್ತರಗಳು ದಾಖಲಾಗಿಲ್ಲ."))
+    st.caption("Please complete the What Changed? questionnaire to see your personalized bill diagnosis."
+               if lang == "en" else
+               "ನಿಮ್ಮ ಬಿಲ್ ಬದಲಾವಣೆ ವಿಶ್ಲೇಷಿಸಲು ದಯವಿಟ್ಟು 'ಏನು ಬದಲಾಗಿದೆ?' ಪುಟದಲ್ಲಿ ಉತ್ತರಿಸಿ.")
+    c1, _ = st.columns([1, 2])
+    with c1:
+        try:
+            st.page_link("pages/4_What_Changed.py", label="Open What Changed? Questionnaire →" if lang == "en" else "ಏನು ಬದಲಾಗಿದೆ ಪುಟಕ್ಕೆ ಹೋಗಿ →", icon="📝")
+        except Exception:
+            st.markdown("[👉 **What Changed?**](4_What_Changed)")
+
+    if st.button("Preview with sample answers" if lang == "en" else "ಮಾದರಿ ಉತ್ತರಗಳೊಂದಿಗೆ ವೀಕ್ಷಿಸಿ"):
+        st.session_state["answers"] = {
+            "vacation_days": 0, "guests_people": 2, "guests_days": 6, "hot_ac": True,
+            "geyser": True, "home_more": False, "pump": False, "new_items": ["AC"],
+            "festival_lights": False, "power_cuts": False
+        }
+        st.rerun()
     st.stop()
 
-cur = bills[-1]
-prev = bills[-2]
-ans = st.session_state.get("answers", {
-    "vacation_days": 0, "guests_people": 0, "guests_days": 0,
-    "heat": False, "geyser": False, "home_more": False, "pump": False,
-    "new_items": [], "festival_lights": False, "power_cuts": False
-})
+norm_answers = questions.normalize_answers(answers)
 
-# Rates
-RATE = 5.80
-FIXED_PER_KW = 150
-TAX = 0.09
-GJ_CAP = 200
+try:
+    bills = db.get_bills(user_id)
+except Exception:
+    bills = st.session_state.get("bills", [])
 
-def to_pay(u, d, kw, f, free):
-    energy = u * RATE
-    full = energy + kw * FIXED_PER_KW * d / 30 + u * f + energy * TAX
-    if free is None or u > GJ_CAP:
-        return full
-    if u <= free:
-        return 0.0
-    return (u - free) * (RATE * (1 + TAX) + f)
-
-pay_prev = to_pay(prev["units"], prev["days"], prev["load_kw"], prev["fuel_rs"], prev["free_units"])
-pay_cur = to_pay(cur["units"], cur["days"], cur["load_kw"], cur["fuel_rs"], cur["free_units"])
-diff = pay_cur - pay_prev
-
-# Quick metrics
-m1, m2, m3 = st.columns(3)
-m1.metric("Current Bill" if lang == "en" else "ಪ್ರಸ್ತುತ ಬಿಲ್", ui_common.rupees(pay_cur))
-m2.metric("Previous Bill" if lang == "en" else "ಹಿಂದಿನ ಬಿಲ್", ui_common.rupees(pay_prev))
-m3.metric("Net Change" if lang == "en" else "ಒಟ್ಟು ವ್ಯತ್ಯಾಸ", f"{'+' if diff > 0 else ''}{ui_common.rupees(diff)}", delta=ui_common.rupees(diff), delta_color="inverse")
-
-# --- Card 1: Why your bill changed ---
-with st.container(border=True):
-    st.subheader(text.T("card1_sub", lang))
-    st.markdown(f"**{text.T('card1_net_jump', lang)}** {ui_common.rupees(diff)}")
-    
-    if lang == "kn":
-        labels = ["ಹಿಂದಿನ ಬಿಲ್", "ಹೆಚ್ಚುವರಿ ದಿನಗಳು", "ಅತಿಥಿಗಳ ಬಳಕೆ", "ಬಿಸಿಲು / AC", "ಗೃಹ ಜ್ಯೋತಿ ಪರಿಣಾಮ", "ಈ ತಿಂಗಳ ಬಿಲ್"]
-    else:
-        labels = ["Previous Bill", "Billing Days", "Guest Usage", "Hot Weather/AC", "Gruha Jyothi Impact", "Current Bill"]
-
-    measures = ["absolute", "relative", "relative", "relative", "relative", "total"]
-    
-    d_day_val = (cur["days"] - prev["days"]) * (prev["units"]/prev["days"]) * RATE * (1+TAX)
-    guest_val = (ans.get("guests_people", 0) * ans.get("guests_days", 0) * 1.2) * RATE * (1+TAX)
-    heat_val = (35.0 * RATE * (1+TAX)) if ans.get("heat") else 0.0
-    gj_val = (pay_cur - (pay_prev + d_day_val + guest_val + heat_val)) if cur["units"] > GJ_CAP and cur.get("free_units") else 0.0
-    
-    vals = [pay_prev, d_day_val, guest_val, heat_val, gj_val, pay_cur]
-    
-    fig = go.Figure(go.Waterfall(
-        x=labels,
-        measure=measures,
-        y=[pay_prev, d_day_val, guest_val, heat_val, gj_val, 0],
-        text=[ui_common.rupees(v) for v in vals],
-        textposition="outside",
-        increasing={"marker": {"color": "#dc2626"}},
-        decreasing={"marker": {"color": "#16a34a"}},
-        totals={"marker": {"color": "#2563eb"}}
-    ))
-    fig.update_layout(height=360, margin=dict(l=10, r=10, t=20, b=10), showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
-
-# --- Card 2: Waste Detection ---
-with st.container(border=True):
-    st.subheader(text.T("card2_sub", lang))
-    if ans.get("vacation_days", 0) >= 5:
-        if lang == "kn":
-            st.error(f"⚠️ **ರಜೆ ತಪಾಸಣೆ:** ನೀವು {ans['vacation_days']} ದಿನ ಮನೆಯಲ್ಲಿ ಇರಲಿಲ್ಲ, ಆದರೆ ವಿದ್ಯುತ್ ಬಳಕೆ ಕಡಿಮೆಯಾಗಿಲ್ಲ! ಚಾಲನೆಯಲ್ಲಿರುವ ಗೀಸರ್, ನೀರಿನ ಪಂಪ್ ಅಥವಾ ಇನ್ವರ್ಟರ್ ತಪಾಸಣೆ ಮಾಡಿ.")
-        else:
-            st.error(f"⚠️ **Vacation Test:** You were away for {ans['vacation_days']} days, but daily consumption stayed high. Check running geysers, pumps, or vampire loads.")
-    else:
-        st.success("✅ ರಜೆ ತಪಾಸಣೆ ಯಶಸ್ವಿ: ಯಾವುದೇ ಅಸಹಜ ವಿದ್ಯುತ್ ನಷ್ಟ ಕಂಡುಬಂದಿಲ್ಲ." if lang == "kn" else "✅ Vacation Audit: No abnormal standby waste detected for this period.")
-    
-    if cur["units"] > GJ_CAP and cur.get("free_units"):
-        over = cur["units"] - GJ_CAP
-        if lang == "kn":
-            st.warning(f"⚠️ **200 ಯೂನಿಟ್ ಮೀರಿದೆ:** ನೀವು ಕೇವಲ {over:.0f} ಯೂನಿಟ್‌ಗಳಿಂದ ಮಿತಿ ಮೀರಿದ್ದೀರಿ! 200ರ ಒಳಗೆ ಇಟ್ಟಿದ್ದರೆ {ui_common.rupees(pay_cur)} ಉಳಿಯುತ್ತಿತ್ತು.")
-        else:
-            st.warning(f"⚠️ **Crossed 200 Units:** You exceeded the cap by only {over:.0f} units! Staying under 200 units would have saved {ui_common.rupees(pay_cur)}.")
-
-# --- Card 3: Tailored Savings Tips ---
-with st.container(border=True):
-    st.subheader(text.T("card3_sub", lang))
-    if lang == "kn":
-        tips_list = [
-            ("AC ತಾಪಮಾನವನ್ನು 18°C ಬದಲಿಗೆ 24°C–26°C ಗೆ ಹೊಂದಿಸಿ", "~₹450/ತಿಂಗಳು ಉಳಿತಾಯ", "ಉಚಿತ"),
-            ("ನೀರಿನ ಟ್ಯಾಂಕ್ ಉಕ್ಕಿ ಹರಿಯುವುದನ್ನು ತಡೆಯಲು ಆಟೋ-ಕಟ್ ಸೆನ್ಸರ್ ಅಳವಡಿಸಿ", "~₹280/ತಿಂಗಳು ಉಳಿತಾಯ", "₹400 ಒಂದು ಬಾರಿ"),
-            ("ಸ್ನಾನದ ನಂತರ ಗೀಸರ್ ಸ್ವಿಚ್ ಆಫ್ ಮಾಡಿ", "~₹320/ತಿಂಗಳು ಉಳಿತಾಯ", "ಉಚಿತ"),
-            ("200 ಯೂನಿಟ್ ಒಳಗೆ ಇರಿಸಲು ಪ್ರತಿ ತಿಂಗಳ 15ನೇ ತಾರೀಖು ಮೀಟರ್ ಪರಿಶೀಲಿಸಿ", "₹1,400 ವರೆಗೆ ಉಳಿತಾಯ", "ಉಚಿತ")
+# Zero Bills Edge Case (Must not crash)
+if not bills:
+    st.warning("⚠️ " + ("No electricity bills found for this account." if lang == "en" else "ಈ ಖಾತೆಯಲ್ಲಿ ಯಾವುದೇ ಬಿಲ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ."))
+    st.caption("Add your bills in My Bills to see your component waterfall breakdown and verified waste checks."
+               if lang == "en" else
+               "ವಾಟರ್‌ಫಾಲ್ ಚಾರ್ಟ್ ಮತ್ತು ನಷ್ಟ ತಪಾಸಣೆ ನೋಡಲು 'ನನ್ನ ಬಿಲ್‌ಗಳು' ಪುಟದಲ್ಲಿ ಬಿಲ್ ಸೇರಿಸಿ.")
+    if st.button("Load sample bills for preview" if lang == "en" else "ಮಾದರಿ ಬಿಲ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಿ"):
+        st.session_state["bills"] = [
+            {"month": "August", "units": 155.0, "days": 30, "away": 0, "fuel_per_unit": 0.0, "estimated": False, "load_kw": 2.0, "free_units": 150},
+            {"month": "September", "units": 245.0, "days": 31, "away": 0, "fuel_per_unit": 0.35, "estimated": False, "load_kw": 2.0, "free_units": 150}
         ]
+        st.rerun()
+    st.stop()
+
+# -----------------------------------------------------------------------------
+# Bill Math via engine.explain(bills, answers)
+# -----------------------------------------------------------------------------
+cur_bill = bills[-1]
+prev_bill = bills[-2] if len(bills) >= 2 else None
+
+try:
+    reasons, total_rupees, normal = explain(bills, norm_answers)
+except Exception:
+    reasons, total_rupees, normal = [], 0.0, 5.0
+
+# Calculate payable amounts
+kw_cur = float(cur_bill.get("load_kw", cur_bill.get("kw", 2.0)) or 2.0)
+fuel_cur = float(cur_bill.get("fuel_per_unit", cur_bill.get("fuel", 0.0)) or 0.0)
+free_cur = cur_bill.get("free_units", cur_bill.get("free"))
+pay_cur = to_pay(float(cur_bill.get("units", 0.0)), int(cur_bill.get("days", 30)), kw_cur, fuel_cur, free_cur)
+
+if prev_bill:
+    kw_prev = float(prev_bill.get("load_kw", prev_bill.get("kw", 2.0)) or 2.0)
+    fuel_prev = float(prev_bill.get("fuel_per_unit", prev_bill.get("fuel", 0.0)) or 0.0)
+    free_prev = prev_bill.get("free_units", prev_bill.get("free"))
+    pay_prev = to_pay(float(prev_bill.get("units", 0.0)), int(prev_bill.get("days", 30)), kw_prev, fuel_prev, free_prev)
+else:
+    pay_prev = 0.0
+
+st.divider()
+
+# Quick summary row
+qm1, qm2, qm3 = st.columns(3)
+qm1.metric("Current Bill" if lang == "en" else "ಪ್ರಸ್ತುತ ಬಿಲ್", ui_common.rupees(pay_cur))
+if prev_bill:
+    qm2.metric("Previous Bill" if lang == "en" else "ಹಿಂದಿನ ಬಿಲ್", ui_common.rupees(pay_prev))
+    qm3.metric(
+        "Net Rupee Change" if lang == "en" else "ಒಟ್ಟು ವ್ಯತ್ಯಾಸ",
+        f"{'+' if total_rupees > 0 else ''}{ui_common.rupees(total_rupees)}",
+        delta=ui_common.rupees(total_rupees),
+        delta_color="inverse"
+    )
+else:
+    qm2.metric("Units Consumed" if lang == "en" else "ಬಳಸಿದ ಯೂನಿಟ್‌ಗಳು", f"{cur_bill.get('units', 0.0):.0f} units")
+    qm3.metric("Normal Pace" if lang == "en" else "ದೈನಂದಿನ ಬಳಕೆ", f"{normal:.1f} units/day")
+
+# -----------------------------------------------------------------------------
+# CARD 1: Why your bill changed (RUPEES FIRST)
+# -----------------------------------------------------------------------------
+with st.container(border=True):
+    st.subheader("1 · " + ("Why your bill changed" if lang == "en" else "ನಿಮ್ಮ ಬಿಲ್ ಏಕೆ ಬದಲಾಗಿದೆ?"))
+
+    if not prev_bill:
+        st.info("ℹ️ " + ("Only one bill recorded. A second consecutive bill is needed to calculate a month-over-month rupee change and waterfall chart."
+                         if lang == "en" else
+                         "ಕೇವಲ ಒಂದು ಬಿಲ್ ದಾಖಲಾಗಿದೆ. ವ್ಯತ್ಯಾಸ ಮತ್ತು ವಾಟರ್‌ಫಾಲ್ ಚಾರ್ಟ್ ನೋಡಲು ಕನಿಷ್ಠ 2 ಬಿಲ್‌ಗಳು ಬೇಕು."))
     else:
-        tips_list = [
-            ("Set AC thermostat to 24°C–26°C instead of 18°C–21°C", "Saves ~₹450/month", "Free"),
-            ("Install an auto-cut sensor for water tank pump to prevent overflow runs", "Saves ~₹280/month", "₹400 one-time"),
-            ("Switch off the electric geyser at the mains switch immediately after use", "Saves ~₹320/month", "Free"),
-            ("Check meter on the 15th of every month using our Forecast tab to stay under 200 units", "Saves up to ₹1,400/month", "Free")
-        ]
-    for tip, save, cost in tips_list:
-        st.markdown(f"💡 **{tip}** — *{save}* ({'ವೆಚ್ಚ' if lang == 'kn' else 'Cost'}: `{cost}`)")
+        # RUPEES FIRST Headline
+        if abs(total_rupees) < 20.0:
+            st.markdown(f"### Your bill is about the same as last month. <span style='font-size:0.55em;color:#6b7280;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;'>(estimate)</span>", unsafe_allow_html=True)
+        elif total_rupees > 0:
+            st.markdown(f"### Bill went **UP by {ui_common.rupees(total_rupees)}** <span style='font-size:0.55em;color:#6b7280;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;'>(estimate)</span>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"### Bill went **DOWN by {ui_common.rupees(abs(total_rupees))}** <span style='font-size:0.55em;color:#6b7280;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;'>(estimate)</span>", unsafe_allow_html=True)
+
+        # Biggest reason
+        if reasons:
+            big_r = reasons[0]
+            st.markdown(f"**Biggest factor:** `{big_r['key'].replace('_', ' ').capitalize()}` ({'+' if big_r['rupees'] > 0 else ''}{ui_common.rupees(big_r['rupees'])})")
+
+        left_col, right_col = st.columns([1.1, 1], gap="medium")
+
+        with left_col:
+            st.markdown("**Rupee Impact Breakdown:**")
+            for r in reasons:
+                rs = r.get("rupees", 0.0)
+                tag = r.get("tag", "your usage")
+                colr = "#ef4444" if rs > 0 else "#10b981"
+                st.markdown(
+                    f"<div style='border-left: 4px solid {colr}; padding: 6px 12px; margin: 8px 0; background-color: rgba(128,128,128,0.06); border-radius: 0 4px 4px 0;'>"
+                    f"<b>{r['key'].replace('_', ' ').capitalize()}: {'+' if rs > 0 else ''}{ui_common.rupees(rs)}</b> "
+                    f"<span style='color: #6b7280; font-size: 0.85em'>({tag})</span> "
+                    f"<span style='font-size: 0.72em; color: #6b7280; border: 1px solid #d1d5db; border-radius: 3px; padding: 1px 4px;'>(estimate)</span><br>"
+                    f"<span style='font-size: 0.95em;'>{r.get('text', '')}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+
+        with right_col:
+            # Plotly Waterfall from last bill to this bill
+            if reasons and len(reasons) > 0:
+                waterfall_x = ["Last bill" if lang == "en" else "ಹಿಂದಿನ ಬಿಲ್"] + [r["key"].replace("_", " ").capitalize() for r in reasons] + ["This bill" if lang == "en" else "ಈ ತಿಂಗಳ ಬಿಲ್"]
+                waterfall_measure = ["absolute"] + ["relative"] * len(reasons) + ["total"]
+                waterfall_y = [pay_prev] + [r["rupees"] for r in reasons] + [0]
+                waterfall_text = (
+                    [ui_common.rupees(pay_prev)]
+                    + [('+' if r['rupees'] > 0 else '') + ui_common.rupees(r['rupees']) for r in reasons]
+                    + [ui_common.rupees(pay_cur)]
+                )
+
+                fig = go.Figure(go.Waterfall(
+                    x=waterfall_x,
+                    measure=waterfall_measure,
+                    y=waterfall_y,
+                    text=waterfall_text,
+                    textposition="outside",
+                    increasing={"marker": {"color": "#ef4444"}},
+                    decreasing={"marker": {"color": "#10b981"}},
+                    totals={"marker": {"color": "#3b82f6"}}
+                ))
+                fig.update_layout(
+                    title="<b>Waterfall Analysis (₹)</b>" if lang == "en" else "<b>ವಾಟರ್‌ಫಾಲ್ ವಿಶ್ಲೇಷಣೆ (₹)</b>",
+                    height=350,
+                    margin=dict(l=10, r=10, t=35, b=10),
+                    showlegend=False
+                )
+                try:
+                    st.plotly_chart(fig, width="stretch")
+                except TypeError:
+                    st.plotly_chart(fig, use_container_width=True)
+
+# -----------------------------------------------------------------------------
+# CARD 2: Where the waste is (Coloured messages: red / amber / green)
+# -----------------------------------------------------------------------------
+checks_results = questions.waste_checks(bills, norm_answers, normal)
+
+with st.container(border=True):
+    st.subheader("2 · " + ("Where the waste is" if lang == "en" else "ವಿದ್ಯುತ್ ನಷ್ಟ ಎಲ್ಲಿ ಆಗುತ್ತಿದೆ?"))
+
+    for item in checks_results:
+        lvl, msg = item[0], item[1]
+        if lvl == "red":
+            st.error(msg)
+        elif lvl == "amber":
+            st.warning(msg)
+        else:
+            st.success(msg)
+
+# -----------------------------------------------------------------------------
+# CARD 3: How to save (Top tips from tips(), each with ₹ saved range & cost)
+# -----------------------------------------------------------------------------
+tip_results = questions.tips(norm_answers, bills)
+
+with st.container(border=True):
+    st.subheader("3 · " + ("How to save" if lang == "en" else "ಹೇಗೆ ಉಳಿಸಬಹುದು?"))
+
+    if not tip_results:
+        st.info("No immediate waste identified. Maintain your current electricity usage habits!" if lang == "en" else "ಯಾವುದೇ ಅಸಹಜ ನಷ್ಟ ಕಂಡುಬಂದಿಲ್ಲ. ನಿಮ್ಮ ಉತ್ತಮ ಬಳಕೆಯ ಅಭ್ಯಾಸ ಮುಂದುವರಿಸಿ!")
+    else:
+        for idx, tip in enumerate(tip_results[:5], start=1):
+            msg, u_range, rs_range, cost_val, who_val = tip[0], tip[1], tip[2], tip[3], tip[4]
+
+            st.markdown(f"**{idx}. {msg}**")
+            b1, b2, b3 = st.columns(3)
+            with b1:
+                st.markdown(f"💰 **Rupees Saved:** `{rs_range}`" if lang == "en" else f"💰 **ಉಳಿತಾಯ:** `{rs_range}`")
+            with b2:
+                st.markdown(f"⚡ **Energy Saved:** `{u_range}`" if lang == "en" else f"⚡ **ಯೂನಿಟ್ ಉಳಿತಾಯ:** `{u_range}`")
+            with b3:
+                st.markdown(f"🛠️ **Cost:** `{cost_val}` · *Target: {who_val}*" if lang == "en" else f"🛠️ **ವೆಚ್ಚ:** `{cost_val}` · *{who_val}*")
+
+            if idx < min(len(tip_results), 5):
+                st.divider()
+
+# Footer navigation
+st.markdown("<br>", unsafe_allow_html=True)
+c_nav, _ = st.columns([1, 1])
+with c_nav:
+    try:
+        st.page_link("pages/4_What_Changed.py", label="← Back to What Changed Questionnaire" if lang == "en" else "← ಏನು ಬದಲಾಗಿದೆ ಪ್ರಶ್ನಾವಳಿಗೆ ಹಿಂತಿರುಗಿ", icon="📝")
+    except Exception:
+        st.markdown("[← **Back to What Changed Questionnaire**](4_What_Changed)")
