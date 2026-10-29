@@ -9,8 +9,14 @@ Features:
   - Full dynamic translation of sidebar navigation with explicit single emojis and white text
 """
 
+import importlib
 import streamlit as st
 import text
+import ui_common
+
+# Ensure modules are always fresh from disk (no stale in-memory cache)
+importlib.reload(text)
+importlib.reload(ui_common)
 
 st.set_page_config(
     page_title="Power Bill Coach · Karnataka",
@@ -18,6 +24,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Apply global styling directly at the app root so the sidebar is styled immediately
+ui_common.apply_custom_css()
 
 # Initialize Session State defaults
 if "user" not in st.session_state:
