@@ -17,7 +17,7 @@ import text
 
 # Shared imports with safe temporary fallbacks
 try:
-    from engine import RATE, FIXED_PER_KW, TAX, GJ_CAP, AWAY_SHARE
+    from engine import RATE, FIXED_PER_KW, TAX, GJ_CAP, AWAY_SHARE, to_pay, normal_use, fuel_shock
 except ImportError:
     # TEMP until engine.py is ready
     RATE = 5.80
@@ -25,6 +25,26 @@ except ImportError:
     TAX = 0.09
     GJ_CAP = 200
     AWAY_SHARE = 0.30
+
+    def to_pay(units, days, kw, fuel, free_units):
+        energy = units * RATE
+        fixed = kw * FIXED_PER_KW * (days / 30.0)
+        full = energy + fixed + (units * fuel) + (energy * TAX)
+        if free_units is None or units > GJ_CAP:
+            return full
+        if units <= free_units:
+            return 0.0
+        return (units - free_units) * (RATE * (1.0 + TAX) + fuel)
+
+    def normal_use(bills):
+        if not bills:
+            return 0.0
+        recent = bills[-6:] if len(bills) >= 6 else bills
+        rates = [b["units"] / max(1, b.get("days", 30)) for b in recent]
+        return sum(rates) / len(rates)
+
+    def fuel_shock(units, days, kw, fuel_now, fuel_new, free_units):
+        return round((fuel_new - fuel_now) * units, 2)
 
 ui_common.apply_custom_css()
 ui_common.render_sidebar()
@@ -55,7 +75,7 @@ if not bills:
     st.stop()
 
 latest = bills[-1]
-normal_daily = float(latest["units"]) / max(float(latest.get("days", 30)), 1.0)
+normal_daily = float(normal_use(bills))
 kw = float(latest.get("load_kw", 2.0))
 free = latest.get("free_units")
 last_days = int(latest.get("days", 30))
@@ -66,17 +86,6 @@ if "fuel_per_unit" in latest and latest["fuel_per_unit"] is not None:
 else:
     last_fuel_rate = float(latest.get("fuel_rs", 0.0)) / max(float(latest["units"]), 1.0)
 last_fuel_rate = round(last_fuel_rate, 2)
-
-# Bill calculation with days scaling for fixed charges
-def to_pay(u, f, days=30, free_u=free, load_kw=kw):
-    energy = u * RATE
-    fixed = load_kw * FIXED_PER_KW * (days / 30.0)
-    full = energy + fixed + (u * f) + (energy * TAX)
-    if free_u is None or u > GJ_CAP:
-        return full
-    if u <= free_u:
-        return 0.0
-    return (u - free_u) * (RATE * (1.0 + TAX) + f)
 
 # 1. Inputs refining next month forecast
 st.subheader(text.T("forecast_q_sub", lang))
@@ -104,11 +113,11 @@ projected_units = (normal_daily * eff_days * (1.15 if summer_next else 1.0)) + (
 
 low_u, mid_u, hi_u = projected_units * 0.9, projected_units, projected_units * 1.1
 
-b_lo = to_pay(low_u, fuel_next, days=30)
-b_mid = to_pay(mid_u, fuel_next, days=30)
-b_hi = to_pay(hi_u, fuel_next, days=30)
+b_lo = to_pay(low_u, days=30, kw=kw, fuel=fuel_next, free_units=free)
+b_mid = to_pay(mid_u, days=30, kw=kw, fuel=fuel_next, free_units=free)
+b_hi = to_pay(hi_u, days=30, kw=kw, fuel=fuel_next, free_units=free)
 
-last_bill_paid = to_pay(float(latest["units"]), last_fuel_rate, days=last_days)
+last_bill_paid = to_pay(float(latest["units"]), days=last_days, kw=kw, fuel=last_fuel_rate, free_units=free)
 
 # 2. Headline in RUPEES
 with st.container(border=True):
@@ -118,7 +127,7 @@ with st.container(border=True):
     )
 
     # "Rates vs you" line: breaking down change vs last bill
-    cost_old_usage_new_rates = to_pay(float(latest["units"]), fuel_next, days=30)
+    cost_old_usage_new_rates = to_pay(float(latest["units"]), days=30, kw=kw, fuel=fuel_next, free_units=free)
     rate_diff_rs = round(cost_old_usage_new_rates - last_bill_paid)
     usage_diff_rs = round(b_mid - cost_old_usage_new_rates)
     total_diff_rs = round(b_mid - last_bill_paid)
@@ -148,8 +157,7 @@ with st.container(border=True):
 
     # Fuel shock callout (when fuel_next is higher than last bill's fuel rate)
     if fuel_next > last_fuel_rate:
-        b_mid_old_fuel = to_pay(mid_u, last_fuel_rate, days=30)
-        fuel_extra_rs = round(b_mid - b_mid_old_fuel)
+        fuel_extra_rs = round(fuel_shock(mid_u, 30, kw, last_fuel_rate, fuel_next, free))
         st.warning(text.T("forecast_fuel_shock_callout", lang, extra_rs=fuel_extra_rs))
 
     # Gruha Jyothi risk warning
