@@ -131,7 +131,7 @@ if consumers_val and ev_val and share_val:
         m1, m2, m3 = st.columns(3)
         m1.metric(text.T("about_metric_consumers", lang), consumers_val, delta=consumers_delta)
         m2.metric(text.T("about_metric_ev", lang), ev_val, delta=ev_delta)
-        m3.metric(text.T("about_metric_share", lang), share_val, delta=share_delta)
+        m3.metric(text.T("about_metric_share", lang), share_val, delta=share_delta, delta_color="off")
 
 # Display chart of Consumers in Lakhs over time from real data
 if df_annual is not None and "Consumers in Lakhs" in df_annual.columns:
@@ -144,6 +144,8 @@ if df_annual is not None and "Consumers in Lakhs" in df_annual.columns:
         color_discrete_sequence=["#2b5c8f"]
     )
     fig.update_traces(textposition="outside")
+    # "2010-11" is a financial year, not a date - keep plotly from turning it into Nov 2010
+    fig.update_xaxes(type="category")
     fig.update_layout(
         showlegend=False,
         height=360,

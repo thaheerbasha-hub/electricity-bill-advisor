@@ -21,6 +21,35 @@ import questions
 # Direct import from engine (no TEMP fallback — engine is stable)
 from engine import explain, to_pay
 
+REASON_LABELS = {
+    "days": ("Longer billing cycle", "ಹೆಚ್ಚು ಬಿಲ್ಲಿಂಗ್ ದಿನಗಳು"),
+    "catchup": ("Estimated bill catch-up", "ಅಂದಾಜು ಬಿಲ್ ಹೊಂದಾಣಿಕೆ"),
+    "vacation": ("Days away", "ಮನೆಯಿಂದ ಹೊರಗಿದ್ದ ದಿನಗಳು"),
+    "guests": ("Guests", "ಅತಿಥಿಗಳು"),
+    "heat": ("Heat / AC use", "ಬಿಸಿಲು / AC ಬಳಕೆ"),
+    "geyser": ("Geyser", "ಗೀಸರ್"),
+    "home_more": ("More time at home", "ಮನೆಯಲ್ಲಿ ಹೆಚ್ಚು ಸಮಯ"),
+    "pump": ("Water pump", "ನೀರಿನ ಪಂಪ್"),
+    "festival": ("Festival lights", "ಹಬ್ಬದ ದೀಪಗಳು"),
+    "new_ac": ("New AC", "ಹೊಸ AC"),
+    "new_geyser": ("New geyser", "ಹೊಸ ಗೀಸರ್"),
+    "new_fridge": ("New fridge", "ಹೊಸ ಫ್ರಿಡ್ಜ್"),
+    "new_washer": ("New washing machine", "ಹೊಸ ವಾಷಿಂಗ್ ಮೆಷಿನ್"),
+    "new_ev": ("New EV", "ಹೊಸ EV"),
+    "new_other": ("New appliance", "ಹೊಸ ಉಪಕರಣ"),
+    "fuel": ("Fuel charge (not your fault)", "ಇಂಧನ ಶುಲ್ಕ (ನಿಮ್ಮ ತಪ್ಪಲ್ಲ)"),
+    "gj": ("Gruha Jyothi change", "ಗೃಹ ಜ್ಯೋತಿ ಬದಲಾವಣೆ"),
+    "powercut": ("Power cuts", "ವಿದ್ಯುತ್ ಕಡಿತ"),
+    "less": ("Used less", "ಕಡಿಮೆ ಬಳಕೆ"),
+    "unknown": ("Unexplained", "ವಿವರಿಸಲಾಗದ ಬಳಕೆ"),
+}
+
+
+def reason_label(key, lang):
+    en, kn = REASON_LABELS.get(key, (key.replace("_", " ").capitalize(), None))
+    return (kn or en) if lang == "kn" else en
+
+
 # Ensure user dict compatibility for ui_common
 if isinstance(st.session_state.get("user"), dict):
     st.session_state["user"].setdefault("name", st.session_state["user"].get("id", "User"))
@@ -164,7 +193,7 @@ with st.container(border=True):
         # Biggest reason
         if reasons:
             big_r = reasons[0]
-            st.markdown(f"**Biggest factor:** `{big_r['key'].replace('_', ' ').capitalize()}` ({'+' if big_r['rupees'] > 0 else ''}{ui_common.rupees(big_r['rupees'])})")
+            st.markdown(f"**Biggest factor:** `{reason_label(big_r['key'], lang)}` ({'+' if big_r['rupees'] > 0 else ''}{ui_common.rupees(big_r['rupees'])})")
 
         left_col, right_col = st.columns([1.1, 1], gap="medium")
 
@@ -176,7 +205,7 @@ with st.container(border=True):
                 colr = "#ef4444" if rs > 0 else "#10b981"
                 st.markdown(
                     f"<div style='border-left: 4px solid {colr}; padding: 6px 12px; margin: 8px 0; background-color: rgba(128,128,128,0.06); border-radius: 0 4px 4px 0;'>"
-                    f"<b>{r['key'].replace('_', ' ').capitalize()}: {'+' if rs > 0 else ''}{ui_common.rupees(rs)}</b> "
+                    f"<b>{reason_label(r['key'], lang)}: {'+' if rs > 0 else ''}{ui_common.rupees(rs)}</b> "
                     f"<span style='color: #6b7280; font-size: 0.85em'>({tag})</span> "
                     f"<span style='font-size: 0.72em; color: #6b7280; border: 1px solid #d1d5db; border-radius: 3px; padding: 1px 4px;'>(estimate)</span><br>"
                     f"<span style='font-size: 0.95em;'>{r.get('text', '')}</span>"
@@ -187,7 +216,7 @@ with st.container(border=True):
         with right_col:
             # Plotly Waterfall from last bill to this bill
             if reasons and len(reasons) > 0:
-                waterfall_x = ["Last bill" if lang == "en" else "ಹಿಂದಿನ ಬಿಲ್"] + [r["key"].replace("_", " ").capitalize() for r in reasons] + ["This bill" if lang == "en" else "ಈ ತಿಂಗಳ ಬಿಲ್"]
+                waterfall_x = ["Last bill" if lang == "en" else "ಹಿಂದಿನ ಬಿಲ್"] + [reason_label(r["key"], lang) for r in reasons] + ["This bill" if lang == "en" else "ಈ ತಿಂಗಳ ಬಿಲ್"]
                 waterfall_measure = ["absolute"] + ["relative"] * len(reasons) + ["total"]
                 waterfall_y = [pay_prev] + [r["rupees"] for r in reasons] + [0]
                 waterfall_text = (

@@ -186,6 +186,7 @@ STRINGS = {
     "about_data_metrics_title": {"en": "Real BESCOM Data Highlights", "kn": "ನೈಜ BESCOM ದತ್ತಾಂಶದ ಮುಖ್ಯಾಂಶಗಳು"},
     "about_metric_consumers": {"en": "BESCOM Consumers (2010 to 2023)", "kn": "BESCOM ಗ್ರಾಹಕರು (2010 ರಿಂದ 2023)"},
     "about_metric_ev": {"en": "Public LT EV Stations", "kn": "ಸಾರ್ವಜನಿಕ LT EV ಚಾರ್ಜಿಂಗ್ ಕೇಂದ್ರಗಳು"},
+    "about_metric_share_desc": {"en": "of Bengaluru electricity is used by homes", "kn": "ಬೆಂಗಳೂರಿನ ವಿದ್ಯುತ್ ಮನೆಗಳಲ್ಲಿ ಬಳಕೆಯಾಗುತ್ತದೆ"},
     "about_metric_share": {"en": "Bengaluru Domestic Share", "kn": "ಬೆಂಗಳೂರು ಗೃಹ ಬಳಕೆಯ ಪಾಲು"},
     "about_chart_title": {"en": "BESCOM Consumers Growth (Lakhs) : 2010-11 to 2022-23", "kn": "BESCOM ಗ್ರಾಹಕರ ಬೆಳವಣಿಗೆ (ಲಕ್ಷಗಳಲ್ಲಿ) : 2010-11 ರಿಂದ 2022-23"},
     "about_source_note": {"en": "Source: BESCOM public datasets (data/bescom/)", "kn": "ಮೂಲ: BESCOM ಸಾರ್ವಜನಿಕ ದತ್ತಾಂಶ (data/bescom/)"},
