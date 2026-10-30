@@ -50,7 +50,7 @@ ANSWERS = {"away_days": 5, "guests_people": 2, "guests_days": 10, "heat": True, 
 
 
 def run(page, user, lang, answers):
-    at = AppTest.from_file(page, default_timeout=60)
+    at = AppTest.from_file(os.path.join(ROOT, page), default_timeout=60)
     at.session_state["user"] = user
     at.session_state["lang"] = lang
     if answers is not None:
